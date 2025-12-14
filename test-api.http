@@ -1,0 +1,223 @@
+### Health Check
+GET http://localhost:3000
+
+###
+
+### 0. Setup First Admin (hanya bisa digunakan sekali)
+POST http://localhost:3000/api/auth/setup-admin
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "admin123",
+  "passwordConfirmation": "admin123",
+  "name": "Admin User",
+  "phone": "08123456789"
+}
+
+###
+
+### 1. Register User
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "passwordConfirmation": "password123",
+  "name": "John Doe",
+  "phone": "08123456789",
+  "birthDate": "1990-01-01"
+}
+
+###
+
+### 2. Register Admin (untuk test todos nanti) - Cara Manual
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "admin2@example.com",
+  "password": "admin123",
+  "passwordConfirmation": "admin123",
+  "name": "Admin User 2"
+}
+# Setelah register, ubah role di database menjadi ADMIN
+
+###
+
+### 3. Login User
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+
+###
+
+### 4. Login Admin
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "admin123"
+}
+
+###
+
+### 5. Get Profile (ganti YOUR_ACCESS_TOKEN dengan token dari login)
+GET http://localhost:3000/api/auth/profile
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+###
+
+### 6. Update Profile
+PUT http://localhost:3000/api/auth/profile
+Authorization: Bearer YOUR_ACCESS_TOKEN
+Content-Type: application/json
+
+{
+  "name": "John Doe Updated",
+  "phone": "08987654321"
+}
+
+###
+
+### 7. Change Password
+POST http://localhost:3000/api/auth/change-password
+Authorization: Bearer YOUR_ACCESS_TOKEN
+Content-Type: application/json
+
+{
+  "currentPassword": "password123",
+  "newPassword": "newpassword123",
+  "passwordConfirmation": "newpassword123"
+}
+
+###
+
+### 8. Refresh Token
+POST http://localhost:3000/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "YOUR_REFRESH_TOKEN"
+}
+
+###
+
+### 9. Logout
+POST http://localhost:3000/api/auth/logout
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+###
+
+### === TODOS (All Authenticated Users) ===
+
+### 10. Create Todo (User dapat create todo sendiri)
+POST http://localhost:3000/api/todos
+Authorization: Bearer YOUR_ACCESS_TOKEN
+Content-Type: application/json
+
+{
+  "title": "Complete project",
+  "description": "Finish the API documentation",
+  "completed": false
+}
+
+###
+
+### 11. Get All Todos (User: milik sendiri, Admin: semua)
+GET http://localhost:3000/api/todos?page=1&limit=10
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+###
+
+### 12. Get Todo by ID (ganti TODO_ID)
+GET http://localhost:3000/api/todos/TODO_ID
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+###
+
+### 13. Update Todo (User: milik sendiri, Admin: semua)
+PUT http://localhost:3000/api/todos/TODO_ID
+Authorization: Bearer YOUR_ACCESS_TOKEN
+Content-Type: application/json
+
+{
+  "title": "Complete project - Updated",
+  "completed": true
+}
+
+###
+
+### 14. Delete Todo (User: milik sendiri, Admin: semua)
+DELETE http://localhost:3000/api/todos/TODO_ID
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+###
+
+### === USER MANAGEMENT (ADMIN ONLY) ===
+
+### 15. Get All Users
+GET http://localhost:3000/api/users?page=1&limit=10
+Authorization: Bearer ADMIN_ACCESS_TOKEN
+
+###
+
+### 16. Get All Users by Role (filter)
+GET http://localhost:3000/api/users?role=ADMIN
+Authorization: Bearer ADMIN_ACCESS_TOKEN
+
+###
+
+### 17. Get User by ID (ganti USER_ID)
+GET http://localhost:3000/api/users/USER_ID
+Authorization: Bearer ADMIN_ACCESS_TOKEN
+
+###
+
+### 18. Create User by Admin
+POST http://localhost:3000/api/users
+Authorization: Bearer ADMIN_ACCESS_TOKEN
+Content-Type: application/json
+
+{
+  "email": "newuser@example.com",
+  "password": "password123",
+  "name": "New User",
+  "phone": "08111222333",
+  "role": "USER",
+  "status": "ACTIVE"
+}
+
+###
+
+### 19. Update User Role (ganti USER_ID)
+PATCH http://localhost:3000/api/users/USER_ID/role
+Authorization: Bearer ADMIN_ACCESS_TOKEN
+Content-Type: application/json
+
+{
+  "role": "ADMIN"
+}
+
+###
+
+### 20. Update User Status (ganti USER_ID)
+PATCH http://localhost:3000/api/users/USER_ID/status
+Authorization: Bearer ADMIN_ACCESS_TOKEN
+Content-Type: application/json
+
+{
+  "status": "INACTIVE"
+}
+
+###
+
+### 21. Delete User (ganti USER_ID)
+DELETE http://localhost:3000/api/users/USER_ID
+Authorization: Bearer ADMIN_ACCESS_TOKEN
