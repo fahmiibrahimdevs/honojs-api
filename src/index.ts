@@ -23,9 +23,11 @@ import { config } from "./config"; // Konfigurasi app (port, JWT secret, dll)
 import { logger } from "./utils/logger"; // Custom logger berwarna
 import { response } from "./utils/response"; // Helper response JSON
 import { AppException } from "./exceptions"; // Base class semua custom exception
+import { swaggerUI } from "@hono/swagger-ui"; // Swagger UI middleware
 import authRoutes from "./routes/auth"; // Route /api/auth/...
 import todoRoutes from "./routes/todos"; // Route /api/todos/...
 import userRoutes from "./routes/users"; // Route /api/users/...
+import { openApiSpec } from "./docs/openapi"; // OpenAPI 3.0 spec
 
 const app = new Hono();
 
@@ -45,7 +47,7 @@ app.use("*", async (c, next) => {
 app.get("/", (c) => {
   return response.success(c, {
     name: "Hono.js REST API",
-    version: "2.0.0",
+    version: "2.1.0",
     status: "running",
     timestamp: new Date().toISOString(),
   });
@@ -55,6 +57,13 @@ app.get("/", (c) => {
 app.route("/api/auth", authRoutes);
 app.route("/api/todos", todoRoutes);
 app.route("/api/users", userRoutes);
+
+// ─── Swagger / OpenAPI Docs ────────────────────────────────────────────────────
+// Akses Swagger UI di: http://localhost:3000/docs
+app.get("/docs", swaggerUI({ url: "/docs/json" }));
+
+// Endpoint yang mengembalikan raw OpenAPI JSON spec
+app.get("/docs/json", (c) => c.json(openApiSpec));
 
 // ─── 404 Handler ───────────────────────────────────────────────────────────────
 app.notFound((c) => {
@@ -86,6 +95,7 @@ app.onError((err, c) => {
 // ─── Start Server ──────────────────────────────────────────────────────────────
 logger.info(`🚀 Server running on http://localhost:${config.port}`);
 logger.info(`📌 Environment: ${process.env.NODE_ENV ?? "development"}`);
+logger.info(`📖 Swagger UI: http://localhost:${config.port}/docs`);
 
 export default {
   port: config.port,
