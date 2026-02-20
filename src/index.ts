@@ -1,47 +1,93 @@
-import { Hono } from 'hono'
-import { cors } from 'hono/cors'
-import { logger } from 'hono/logger'
-import { prettyJSON } from 'hono/pretty-json'
-import { config } from './config'
-import auth from './routes/auth'
-import todos from './routes/todos'
-import users from './routes/users'
+/**
+ * src/index.ts
+ *
+ * Entry point utama aplikasi Hono.js.
+ *
+ * File ini bertanggung jawab untuk:
+ * 1. Inisialisasi aplikasi Hono
+ * 2. Mendaftarkan global middleware (CORS, JSON formatter, request logger)
+ * 3. Mendaftarkan semua route API
+ * 4. Mendefinisikan global error handler (menangkap semua throw Exception)
+ * 5. Menjalankan server pada port yang dikonfigurasi
+ *
+ * Alur request yang masuk:
+ *   Request → Global Middleware → Route → Middleware Route → Controller
+ *                                                             ↓
+ *                                                        Service → Repository → DB
+ */
 
-const app = new Hono()
+import { Hono } from "hono";
+import { cors } from "hono/cors"; // Middleware CORS bawaan Hono
+import { prettyJSON } from "hono/pretty-json"; // Middleware untuk format JSON rapi di browser
+import { config } from "./config"; // Konfigurasi app (port, JWT secret, dll)
+import { logger } from "./utils/logger"; // Custom logger berwarna
+import { response } from "./utils/response"; // Helper response JSON
+import { AppException } from "./exceptions"; // Base class semua custom exception
+import authRoutes from "./routes/auth"; // Route /api/auth/...
+import todoRoutes from "./routes/todos"; // Route /api/todos/...
+import userRoutes from "./routes/users"; // Route /api/users/...
 
-// Middleware
-app.use('*', logger())
-app.use('*', prettyJSON())
-app.use('*', cors())
+const app = new Hono();
 
-// Health check
-app.get('/', (c) => {
-  return c.json({
-    message: 'Hono.js REST API with Prisma ORM',
-    version: '1.0.0',
-    status: 'running',
-  })
-})
+// ─── Global Middleware ─────────────────────────────────────────────────────────
+app.use("*", cors());
+app.use("*", prettyJSON());
 
-// Routes
-app.route('/api/auth', auth)
-app.route('/api/todos', todos)
-app.route('/api/users', users)
+// Custom HTTP request logger with timing
+app.use("*", async (c, next) => {
+  const start = Date.now();
+  await next();
+  const duration = Date.now() - start;
+  logger.request(c.req.method, c.req.path, c.res.status, duration);
+});
 
-// 404 handler
+// ─── Health Check ──────────────────────────────────────────────────────────────
+app.get("/", (c) => {
+  return response.success(c, {
+    name: "Hono.js REST API",
+    version: "2.0.0",
+    status: "running",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// ─── API Routes ────────────────────────────────────────────────────────────────
+app.route("/api/auth", authRoutes);
+app.route("/api/todos", todoRoutes);
+app.route("/api/users", userRoutes);
+
+// ─── 404 Handler ───────────────────────────────────────────────────────────────
 app.notFound((c) => {
-  return c.json({ error: 'Route not found' }, 404)
-})
+  return response.error(c, `Route ${c.req.method} ${c.req.path} not found`, 404);
+});
 
-// Error handler
+// ─── Global Error Handler ──────────────────────────────────────────────────────
 app.onError((err, c) => {
-  console.error('Error:', err)
-  return c.json({ error: 'Internal server error' }, 500)
-})
+  // Handle custom app exceptions
+  if (err instanceof AppException) {
+    logger.warn(`[${err.name}] ${err.message}`, {
+      path: c.req.path,
+      method: c.req.method,
+      ...(err.errors ? { errors: err.errors } : {}),
+    });
+    return response.error(c, err.message, err.statusCode, err.errors);
+  }
+
+  // Handle unexpected errors
+  logger.error(`Unhandled error: ${err.message}`, {
+    path: c.req.path,
+    method: c.req.method,
+    stack: err.stack,
+  });
+
+  return response.error(c, "Internal server error", 500);
+});
+
+// ─── Start Server ──────────────────────────────────────────────────────────────
+logger.info(`🚀 Server running on http://localhost:${config.port}`);
+logger.info(`📌 Environment: ${process.env.NODE_ENV ?? "development"}`);
 
 export default {
   port: config.port,
   fetch: app.fetch,
-}
-
-console.log(`🚀 Server running on http://localhost:${config.port}`)
+};

@@ -1,7 +1,36 @@
+/**
+ * config/index.ts
+ *
+ * Konfigurasi terpusat aplikasi.
+ *
+ * Semua nilai konfigurasi diambil dari environment variables (.env file).
+ * Jika environment variable tidak di-set, akan menggunakan nilai default.
+ *
+ * PENTING untuk production:
+ * - Ganti JWT_SECRET dan JWT_REFRESH_SECRET dengan string acak yang panjang dan kuat
+ * - Jangan pernah commit .env ke repository (tambahkan ke .gitignore)
+ *
+ * Cara set env variable:
+ *   Buat file .env di root project:
+ *     PORT=3000
+ *     JWT_SECRET=your-super-secret-key-here
+ *     JWT_REFRESH_SECRET=another-secret-key
+ *     DATABASE_URL=mysql://user:pass@localhost:3306/dbname
+ */
+
 export const config = {
+  /** Port server. Ambil dari env PORT, default 3000 */
   port: process.env.PORT || 3000,
-  jwtSecret: process.env.JWT_SECRET || 'default-secret-key',
-  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret-key',
-  jwtExpiresIn: '15m', // Access token expires in 15 minutes
-  jwtRefreshExpiresIn: '7d', // Refresh token expires in 7 days
-}
+
+  /** Secret key untuk signing access token JWT. WAJIB diganti di production! */
+  jwtSecret: process.env.JWT_SECRET || "default-secret-key",
+
+  /** Secret key berbeda untuk signing refresh token. Harus berbeda dari jwtSecret! */
+  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || "default-refresh-secret-key",
+
+  /** Durasi berlaku access token (15 menit). Setelah ini user perlu refresh token. */
+  jwtExpiresIn: "15m",
+
+  /** Durasi berlaku refresh token (7 hari). Setelah ini user harus login ulang. */
+  jwtRefreshExpiresIn: "7d",
+};
