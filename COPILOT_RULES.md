@@ -324,12 +324,50 @@ gh release create v2.1.0 \
 
 ---
 
+## 📖 12. Swagger UI & OpenAPI Spec
+
+API ini memiliki dokumentasi interaktif yang bisa diakses di:
+- **Swagger UI** : `http://localhost:3000/docs`
+- **Raw JSON spec** : `http://localhost:3000/docs/json`
+
+### File spec
+Semua definisi OpenAPI ada di **`src/docs/openapi.ts`**.
+File ini **harus diupdate** setiap kali ada perubahan endpoint.
+
+### Aturan update spec:
+
+1. **Tambah endpoint baru** → tambahkan path baru di objek `paths` di `openapi.ts`
+2. **Ubah request body / response** → update schema yang bersesuaian
+3. **Endpoint butuh auth** → tambahkan `security: bearerAuth`
+4. **Endpoint baru butuh tag baru** → tambahkan di array `tags` di bagian bawah spec
+
+### Struktur `openapi.ts`:
+```
+openapi.ts
+├── successResponse()     → helper untuk response 200/201
+├── paginatedResponse()   → helper untuk response dengan meta paginasi
+├── errorResponse()       → helper untuk response error
+├── userSchema            → reusable schema data user
+├── todoSchema            → reusable schema data todo
+├── paginationParams      → reusable query params (page, limit)
+├── paths                 → semua definisi endpoint
+└── openApiSpec           → objek final yang diekspor
+```
+
+### Cara test Swagger UI:
+1. Buka `http://localhost:3000/docs`
+2. Klik **Authorize** → masukkan `Bearer <accessToken>` dari hasil login
+3. Pilih endpoint → **Try it out** → isi parameter → **Execute**
+
+---
+
 ## 📁 Struktur Direktori
 
 ```
 src/
 ├── config/         → Konfigurasi app dari env vars
 ├── controllers/    → HTTP handler (baca request, validasi, panggil service)
+├── docs/           → OpenAPI 3.0 spec (openapi.ts) → Swagger UI di /docs
 ├── exceptions/     → Custom exception classes
 ├── lib/            → Singleton (Prisma client)
 ├── middleware/     → Auth & role middleware
