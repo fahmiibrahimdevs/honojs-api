@@ -220,6 +220,87 @@ Ikuti aturan di COPILOT_RULES.md untuk project ini:
 
 ---
 
+## 🚀 11. Git: Semantic Commit & Versioning
+
+### Semantic Commit Message
+
+Setiap commit **wajib** menggunakan format berikut:
+
+```
+<type>(<scope>): <deskripsi singkat>
+```
+
+**Type yang tersedia:**
+
+| Type | Kapan dipakai |
+|---|---|
+| `feat` | Fitur baru |
+| `fix` | Bug fix |
+| `refactor` | Restrukturisasi kode tanpa mengubah perilaku |
+| `docs` | Perubahan dokumentasi / komentar |
+| `chore` | Update dependency, config, tooling |
+| `test` | Menambah atau memperbaiki test |
+| `perf` | Optimasi performa |
+| `style` | Formatting, tidak mengubah logika |
+
+**Contoh commit yang benar:**
+```bash
+git commit -m "feat(todos): add search query param support"
+git commit -m "fix(auth): remove duplicate method in auth.service.ts"
+git commit -m "refactor(routes): rewrite to Laravel-style resource routing"
+git commit -m "docs: add COPILOT_RULES.md with project conventions"
+git commit -m "chore: upgrade hono to v4"
+```
+
+**Aturan tambahan:**
+- Gunakan bahasa **Inggris** untuk pesan commit
+- Deskripsi singkat, maksimal **72 karakter**
+- Jangan pakai titik di akhir
+- Kelompokkan perubahan yang relevan dalam satu commit (jangan commit per baris)
+
+---
+
+### Semantic Versioning (SemVer)
+
+Format versi: `vMAJOR.MINOR.PATCH`
+
+| Versi | Kapan naik |
+|---|---|
+| `MAJOR` | Breaking change (API berubah, tidak backward compatible) |
+| `MINOR` | Fitur baru yang backward compatible |
+| `PATCH` | Bug fix atau perubahan kecil |
+
+**Cara membuat tag versi baru:**
+```bash
+# Buat annotated tag dengan deskripsi
+git tag -a v2.1.0 -m "release: v2.1.0 - deskripsi singkat perubahan"
+
+# Push tag ke GitHub
+git push origin v2.1.0
+
+# Atau push semua tag sekaligus
+git push origin --tags
+```
+
+**Contoh alur lengkap:**
+```bash
+# 1. Stage dan commit dengan semantic message
+git add src/repositories/todo.repository.ts
+git commit -m "feat(todos): add search by title and description"
+
+git add src/services/todo.service.ts
+git commit -m "refactor(todos): pass search param through service layer"
+
+# 2. Tag versi baru
+git tag -a v2.1.0 -m "release: v2.1.0 - add search feature for todos"
+
+# 3. Push commits dan tag
+git push origin main
+git push origin v2.1.0
+```
+
+---
+
 ## 📁 Struktur Direktori
 
 ```
