@@ -232,18 +232,19 @@ Setiap commit **wajib** menggunakan format berikut:
 
 **Type yang tersedia:**
 
-| Type | Kapan dipakai |
-|---|---|
-| `feat` | Fitur baru |
-| `fix` | Bug fix |
+| Type       | Kapan dipakai                                |
+| ---------- | -------------------------------------------- |
+| `feat`     | Fitur baru                                   |
+| `fix`      | Bug fix                                      |
 | `refactor` | Restrukturisasi kode tanpa mengubah perilaku |
-| `docs` | Perubahan dokumentasi / komentar |
-| `chore` | Update dependency, config, tooling |
-| `test` | Menambah atau memperbaiki test |
-| `perf` | Optimasi performa |
-| `style` | Formatting, tidak mengubah logika |
+| `docs`     | Perubahan dokumentasi / komentar             |
+| `chore`    | Update dependency, config, tooling           |
+| `test`     | Menambah atau memperbaiki test               |
+| `perf`     | Optimasi performa                            |
+| `style`    | Formatting, tidak mengubah logika            |
 
 **Contoh commit yang benar:**
+
 ```bash
 git commit -m "feat(todos): add search query param support"
 git commit -m "fix(auth): remove duplicate method in auth.service.ts"
@@ -253,6 +254,7 @@ git commit -m "chore: upgrade hono to v4"
 ```
 
 **Aturan tambahan:**
+
 - Gunakan bahasa **Inggris** untuk pesan commit
 - Deskripsi singkat, maksimal **72 karakter**
 - Jangan pakai titik di akhir
@@ -264,39 +266,60 @@ git commit -m "chore: upgrade hono to v4"
 
 Format versi: `vMAJOR.MINOR.PATCH`
 
-| Versi | Kapan naik |
-|---|---|
+| Versi   | Kapan naik                                               |
+| ------- | -------------------------------------------------------- |
 | `MAJOR` | Breaking change (API berubah, tidak backward compatible) |
-| `MINOR` | Fitur baru yang backward compatible |
-| `PATCH` | Bug fix atau perubahan kecil |
+| `MINOR` | Fitur baru yang backward compatible                      |
+| `PATCH` | Bug fix atau perubahan kecil                             |
 
 **Cara membuat tag versi baru:**
+
 ```bash
 # Buat annotated tag dengan deskripsi
 git tag -a v2.1.0 -m "release: v2.1.0 - deskripsi singkat perubahan"
 
 # Push tag ke GitHub
 git push origin v2.1.0
-
-# Atau push semua tag sekaligus
-git push origin --tags
 ```
 
-**Contoh alur lengkap:**
+**Setelah push tag, buat GitHub Release dengan `gh` CLI:**
+
 ```bash
-# 1. Stage dan commit dengan semantic message
+gh release create v2.1.0 \
+  --title "v2.1.0 - Judul Release" \
+  --notes "## ✨ Changelog
+
+### ✨ New Features
+- Fitur baru A
+
+### ♻️ Refactored
+- Perubahan B
+
+### 🐛 Bug Fixes
+- Fix C"
+```
+
+> ⚠️ Tag saja (`git tag + git push`) **TIDAK** otomatis membuat Release di GitHub.
+> Selalu jalankan `gh release create` setelah push tag agar muncul di halaman Releases.
+
+**Contoh alur lengkap:**
+
+```bash
+# 1. Commit dengan semantic message
 git add src/repositories/todo.repository.ts
 git commit -m "feat(todos): add search by title and description"
 
-git add src/services/todo.service.ts
-git commit -m "refactor(todos): pass search param through service layer"
-
-# 2. Tag versi baru
+# 2. Tag dan push
 git tag -a v2.1.0 -m "release: v2.1.0 - add search feature for todos"
-
-# 3. Push commits dan tag
 git push origin main
 git push origin v2.1.0
+
+# 3. Buat GitHub Release
+gh release create v2.1.0 \
+  --title "v2.1.0 - Search Feature for Todos" \
+  --notes "## ✨ New Features
+- Add search by title and description on GET /api/todos
+- Support ?search=keyword query param"
 ```
 
 ---
