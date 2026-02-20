@@ -1,248 +1,225 @@
-# Hono.js REST API dengan Prisma ORM
+# 🚀 Hono.js REST API
 
-REST API lengkap yang dibangun dengan **Bun**, **Hono.js**, dan **Prisma ORM**. API ini menyediakan sistem autentikasi lengkap, manajemen user dengan multi-role, dan CRUD operations untuk todos yang dilindungi dengan admin-only access.
+REST API lengkap dibangun dengan **Bun**, **Hono.js v3**, dan **Prisma ORM**.
+Menggunakan Clean Architecture dengan autentikasi JWT dual-token, multi-role authorization, dan CRUD todos.
 
-## 🚀 Fitur
+---
 
-### ✅ Sistem Autentikasi Lengkap
-- User registration dengan role assignment
-- User login/logout
-- Token-based authentication (Bearer tokens)
-- Token refresh mechanism
-- Profile management
-- Password change functionality
+## 🧱 Tech Stack
 
-### 🔐 Multi-Role Authorization
-- Admin, User, dan Moderator roles
-- Role-based access control
-- Admin-only protected routes
+| Kebutuhan | Teknologi |
+|---|---|
+| Runtime | Bun v1.3+ |
+| Framework | Hono.js v3 |
+| ORM | Prisma v5 + MySQL |
+| Validasi | Zod v3 |
+| Auth | JWT dual-token (access + refresh) |
+| Password | Bun.password (bcrypt) |
+| ID | UUID v4 |
 
-### 👥 User Management
-- Active/Inactive user status
-- Email uniqueness validation
-- Password confirmation validation
-- Profile updates (name, email, phone, birth date)
-- **Admin can manage all users:**
-  - View all users with pagination & filters
-  - Create users with any role
-  - Update user roles (USER/MODERATOR/ADMIN)
-  - Update user status (ACTIVE/INACTIVE)
-  - Delete users
-- **Easy admin setup:** One-time endpoint untuk create admin pertama
+---
 
-### 📝 Admin-Only CRUD
-- Todos management (Create, Read, Update, Delete)
-- Protected by admin middleware
-- **Users can also manage their own todos**
+## 📁 Struktur Proyek
 
-## 📋 Prerequisites
-
-Sebelum memulai, pastikan Anda telah menginstal:
-
-- **Bun** >= 1.0.0 ([Install Bun](https://bun.sh))
-- **PostgreSQL** >= 13.0
-- **Git**
-
-## 🛠️ Instalasi
-
-### 1. Clone Repository
-
-```bash
-cd /var/www/projects/api/honojs-api
+```
+src/
+├── config/          → Konfigurasi dari env vars
+├── controllers/     → HTTP handler (validasi + panggil service)
+├── exceptions/      → Custom exception classes
+├── lib/             → Prisma singleton
+├── middleware/      → Auth & role middleware
+├── repositories/    → Query database (Prisma)
+├── routes/          → Definisi path API
+├── services/        → Logika bisnis
+├── types/           → Interface & type global
+└── utils/           → Helper (response, logger, jwt, password)
+prisma/
+└── schema.prisma    → Skema database
 ```
 
-### 2. Install Dependencies
+---
+
+## ⚙️ Instalasi
+
+### 1. Clone & Install
 
 ```bash
+git clone https://github.com/fahmiibrahimdevs/honojs-api.git
+cd honojs-api
 bun install
 ```
 
-### 3. Setup Environment Variables
-
-Copy file `.env.example` ke `.env` dan sesuaikan konfigurasi:
+### 2. Setup Environment
 
 ```bash
 cp .env.example .env
 ```
 
-Edit file `.env`:
+Isi file `.env`:
 
 ```env
-DATABASE_URL="postgresql://username:password@localhost:5432/honojs_api?schema=public"
-JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
-JWT_REFRESH_SECRET="your-super-secret-refresh-key-change-this-in-production"
+DATABASE_URL="mysql://user:password@localhost:3306/honojs_api"
+JWT_SECRET="your-super-secret-jwt-key"
+JWT_REFRESH_SECRET="your-super-secret-refresh-key"
 PORT=3000
 ```
 
-### 4. Setup Database
-
-Generate Prisma Client:
-
-```bash
-bun run db:generate
-```
-
-Push schema ke database:
-
-```bash
-bun run db:push
-```
-
-Atau gunakan migration:
+### 3. Migrasi Database
 
 ```bash
 bun run db:migrate
 ```
 
-### 5. Jalankan Server
-
-Development mode (dengan auto-reload):
+### 4. Jalankan Server
 
 ```bash
+# Development (auto-reload)
 bun run dev
-```
 
-Production mode:
-
-```bash
+# Production
 bun run start
 ```
 
-Server akan berjalan di `http://localhost:3000`
+Server berjalan di `http://localhost:3000`
 
-## 📚 API Documentation
+---
+
+## 🔐 Autentikasi
+
+API menggunakan **JWT dual-token**:
+
+| Token | Expire | Kegunaan |
+|---|---|---|
+| `accessToken` | 15 menit | Dipakai di setiap request di header `Authorization` |
+| `refreshToken` | 7 hari | Hanya untuk memperbarui access token yang expired |
+
+**Format header:**
+```
+Authorization: Bearer <accessToken>
+```
+
+---
+
+## 👤 Role & Akses
+
+| Role | Keterangan |
+|---|---|
+| `ADMIN` | Akses penuh ke semua endpoint |
+| `MODERATOR` | Akses terbatas (bisa dikembangkan) |
+| `USER` | Akses ke profil sendiri dan todo sendiri |
+
+---
+
+## 📡 API Endpoints
 
 ### Base URL
-
 ```
-http://localhost:3000/api
+http://localhost:3000
 ```
 
-### Response Format
+### Health Check
 
-Semua response menggunakan format JSON.
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| GET | `/` | ❌ | Status server |
 
-**Success Response:**
+**Response:**
 ```json
 {
-  "message": "Success message",
-  "data": {}
-}
-```
-
-**Error Response:**
-```json
-{
-  "error": "Error message",
-  "details": [] // Optional validation errors
+  "success": true,
+  "data": {
+    "name": "Hono.js REST API",
+    "version": "2.0.0",
+    "status": "running",
+    "timestamp": "2026-02-20T00:00:00.000Z"
+  }
 }
 ```
 
 ---
 
-## 🔐 Authentication Endpoints
+### 🔑 Auth — `/api/auth`
 
-### 0. Setup First Admin
+#### Setup Admin Pertama
+> Hanya bisa dijalankan sekali. Akan error jika admin sudah ada.
 
-Endpoint khusus untuk membuat admin pertama. Hanya bisa digunakan **SEKALI** saat belum ada admin di database.
+```
+POST /api/auth/setup-admin
+```
 
-**Endpoint:** `POST /api/auth/setup-admin`
-
-**Request Body:**
+**Body:**
 ```json
 {
+  "name": "Super Admin",
   "email": "admin@example.com",
-  "password": "admin123",
-  "passwordConfirmation": "admin123",
-  "name": "Admin User",
-  "phone": "08123456789"
-}
-```
-
-**Response (201 Created):**
-```json
-{
-  "message": "First admin created successfully",
-  "data": {
-    "id": "clxxxxxx",
-    "email": "admin@example.com",
-    "name": "Admin User",
-    "phone": "08123456789",
-    "birthDate": null,
-    "role": "ADMIN",
-    "status": "ACTIVE",
-    "createdAt": "2024-01-01T00:00:00.000Z"
-  }
-}
-```
-
-**Error Response (403 Forbidden) - Jika admin sudah ada:**
-```json
-{
-  "error": "Admin already exists. Use /api/users endpoint to create more admins."
-}
-```
-
-### 1. Register User
-
-Mendaftarkan user baru dengan role USER.
-
-**Endpoint:** `POST /api/auth/register`
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
   "password": "password123",
-  "passwordConfirmation": "password123",
-  "name": "John Doe",
-  "phone": "08123456789",
+  "phone": "081234567890",
   "birthDate": "1990-01-01"
 }
 ```
 
-**Response (201 Created):**
+---
+
+#### Register User Baru
+
+```
+POST /api/auth/register
+```
+
+**Body:**
 ```json
 {
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123",
+  "phone": "081234567890",
+  "birthDate": "1995-06-15"
+}
+```
+
+**Response `201`:**
+```json
+{
+  "success": true,
   "message": "User registered successfully",
   "data": {
-    "id": "clxxxxxx",
-    "email": "user@example.com",
+    "id": "550e8400-e29b-41d4-a716-446655440000",
     "name": "John Doe",
-    "phone": "08123456789",
-    "birthDate": "1990-01-01T00:00:00.000Z",
+    "email": "john@example.com",
     "role": "USER",
     "status": "ACTIVE",
-    "createdAt": "2024-01-01T00:00:00.000Z"
+    "createdAt": "2026-02-20T00:00:00.000Z"
   }
 }
 ```
 
-### 2. Login
+---
 
-Login dan mendapatkan access token & refresh token.
+#### Login
 
-**Endpoint:** `POST /api/auth/login`
+```
+POST /api/auth/login
+```
 
-**Request Body:**
+**Body:**
 ```json
 {
-  "email": "user@example.com",
+  "email": "john@example.com",
   "password": "password123"
 }
 ```
 
-**Response (200 OK):**
+**Response `200`:**
 ```json
 {
-  "message": "Login successful",
+  "success": true,
   "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "accessToken": "eyJhbGci...",
+    "refreshToken": "eyJhbGci...",
     "user": {
-      "id": "clxxxxxx",
-      "email": "user@example.com",
+      "id": "550e8400-e29b-41d4-a716-446655440000",
       "name": "John Doe",
+      "email": "john@example.com",
       "role": "USER",
       "status": "ACTIVE"
     }
@@ -250,790 +227,449 @@ Login dan mendapatkan access token & refresh token.
 }
 ```
 
-### 3. Refresh Token
+---
 
-Mendapatkan access token baru menggunakan refresh token.
+#### Refresh Token
 
-**Endpoint:** `POST /api/auth/refresh`
+```
+POST /api/auth/refresh-token
+```
 
-**Request Body:**
+**Body:**
 ```json
 {
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "refreshToken": "eyJhbGci..."
 }
 ```
 
-**Response (200 OK):**
+**Response `200`:**
 ```json
 {
-  "message": "Token refreshed successfully",
+  "success": true,
   "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    "accessToken": "eyJhbGci...",
+    "refreshToken": "eyJhbGci..."
   }
-}
-```
-
-### 4. Logout
-
-Logout dan menghapus refresh token.
-
-**Endpoint:** `POST /api/auth/logout`
-
-**Headers:**
-```
-Authorization: Bearer <access_token>
-```
-
-**Response (200 OK):**
-```json
-{
-  "message": "Logout successful"
-}
-```
-
-### 5. Get Profile
-
-Mendapatkan profil user yang sedang login.
-
-**Endpoint:** `GET /api/auth/profile`
-
-**Headers:**
-```
-Authorization: Bearer <access_token>
-```
-
-**Response (200 OK):**
-```json
-{
-  "data": {
-    "id": "clxxxxxx",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "phone": "08123456789",
-    "birthDate": "1990-01-01T00:00:00.000Z",
-    "role": "USER",
-    "status": "ACTIVE",
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-01T00:00:00.000Z"
-  }
-}
-```
-
-### 6. Update Profile
-
-Update profil user yang sedang login.
-
-**Endpoint:** `PUT /api/auth/profile`
-
-**Headers:**
-```
-Authorization: Bearer <access_token>
-```
-
-**Request Body:**
-```json
-{
-  "name": "John Doe Updated",
-  "phone": "08987654321",
-  "birthDate": "1990-12-31"
-}
-```
-
-**Response (200 OK):**
-```json
-{
-  "message": "Profile updated successfully",
-  "data": {
-    "id": "clxxxxxx",
-    "email": "user@example.com",
-    "name": "John Doe Updated",
-    "phone": "08987654321",
-    "birthDate": "1990-12-31T00:00:00.000Z",
-    "role": "USER",
-    "status": "ACTIVE",
-    "updatedAt": "2024-01-01T00:00:00.000Z"
-  }
-}
-```
-
-### 7. Change Password
-
-Mengubah password user yang sedang login.
-
-**Endpoint:** `POST /api/auth/change-password`
-
-**Headers:**
-```
-Authorization: Bearer <access_token>
-```
-
-**Request Body:**
-```json
-{
-  "currentPassword": "oldpassword123",
-  "newPassword": "newpassword123",
-  "passwordConfirmation": "newpassword123"
-}
-```
-
-**Response (200 OK):**
-```json
-{
-  "message": "Password changed successfully"
 }
 ```
 
 ---
 
-## 📝 Todos Endpoints
+#### Lihat Profil *(Auth required)*
 
-Semua endpoint todos memerlukan authentication. 
-- **USER**: Dapat CRUD todos milik sendiri
-- **ADMIN**: Dapat CRUD semua todos dari semua user
-
-### 1. Get All Todos
-
-Mendapatkan todos dengan pagination.
-- USER: Hanya melihat todos milik sendiri
-- ADMIN: Melihat semua todos dari semua user
-
-**Endpoint:** `GET /api/todos?page=1&limit=10`
-
-**Headers:**
 ```
-Authorization: Bearer <admin_access_token>
+GET /api/auth/profile
 ```
 
-**Query Parameters:**
-- `page` (optional): Halaman yang ingin diambil (default: 1)
-- `limit` (optional): Jumlah data per halaman (default: 10)
-
-**Response (200 OK):**
+**Response `200`:**
 ```json
 {
+  "success": true,
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "081234567890",
+    "birthDate": "1995-06-15T00:00:00.000Z",
+    "role": "USER",
+    "status": "ACTIVE",
+    "createdAt": "2026-02-20T00:00:00.000Z"
+  }
+}
+```
+
+---
+
+#### Update Profil *(Auth required)*
+
+```
+PUT /api/auth/profile
+```
+
+**Body (semua opsional):**
+```json
+{
+  "name": "John Updated",
+  "phone": "089876543210",
+  "birthDate": "1995-06-15"
+}
+```
+
+---
+
+#### Ganti Password *(Auth required)*
+
+```
+POST /api/auth/change-password
+```
+
+**Body:**
+```json
+{
+  "currentPassword": "password123",
+  "newPassword": "newpassword456"
+}
+```
+
+---
+
+#### Logout *(Auth required)*
+
+```
+POST /api/auth/logout
+```
+
+**Response `200`:**
+```json
+{
+  "success": true,
+  "message": "Logged out successfully"
+}
+```
+
+---
+
+### 📝 Todos — `/api/todos`
+
+> Semua endpoint todos memerlukan autentikasi.
+> ADMIN melihat semua todo. USER hanya melihat todo miliknya.
+
+#### List Todos
+
+```
+GET /api/todos
+GET /api/todos?page=1&limit=10
+GET /api/todos?search=belajar
+GET /api/todos?search=belajar&page=1&limit=5
+```
+
+**Query Params:**
+
+| Param | Default | Deskripsi |
+|---|---|---|
+| `page` | `1` | Nomor halaman |
+| `limit` | `10` | Jumlah per halaman |
+| `search` | — | Cari di title & description |
+
+**Response `200`:**
+```json
+{
+  "success": true,
   "data": [
     {
-      "id": "clxxxxxx",
-      "title": "Complete project",
-      "description": "Finish the API documentation",
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "title": "Belajar Hono.js",
+      "description": "Pelajari dokumentasi Hono.js",
       "completed": false,
-      "userId": "clxxxxxx",
       "user": {
-        "id": "clxxxxxx",
-        "name": "Admin User",
-        "email": "admin@example.com"
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "John Doe",
+        "email": "john@example.com"
       },
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "createdAt": "2026-02-20T00:00:00.000Z"
     }
   ],
   "meta": {
     "page": 1,
     "limit": 10,
-    "total": 100,
-    "totalPages": 10
+    "total": 1,
+    "totalPages": 1,
+    "search": "belajar"
   }
 }
 ```
 
-### 2. Get Todo by ID
+---
 
-Mendapatkan detail todo berdasarkan ID.
-- USER: Hanya bisa akses todo milik sendiri
-- ADMIN: Bisa akses semua todo
+#### Detail Todo
 
-**Endpoint:** `GET /api/todos/:id`
-
-**Headers:**
 ```
-Authorization: Bearer <access_token>
+GET /api/todos/:id
 ```
 
-**Response (200 OK):**
+**Response `200`:**
 ```json
 {
+  "success": true,
   "data": {
-    "id": "clxxxxxx",
-    "title": "Complete project",
-    "description": "Finish the API documentation",
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "title": "Belajar Hono.js",
+    "description": "Pelajari dokumentasi Hono.js",
     "completed": false,
-    "userId": "clxxxxxx",
     "user": {
-      "id": "clxxxxxx",
-      "name": "Admin User",
-      "email": "admin@example.com"
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "John Doe",
+      "email": "john@example.com"
     },
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-01T00:00:00.000Z"
+    "createdAt": "2026-02-20T00:00:00.000Z",
+    "updatedAt": "2026-02-20T00:00:00.000Z"
   }
 }
 ```
 
-### 3. Create Todo
+---
 
-Membuat todo baru (semua authenticated user bisa create).
+#### Buat Todo
 
-**Endpoint:** `POST /api/todos`
-
-**Headers:**
 ```
-Authorization: Bearer <access_token>
+POST /api/todos
 ```
 
-**Request Body:**
+**Body:**
 ```json
 {
-  "title": "Complete project",
-  "description": "Finish the API documentation",
+  "title": "Belajar Prisma ORM",
+  "description": "Pelajari relasi dan migrasi",
   "completed": false
 }
 ```
 
-**Response (201 Created):**
+**Response `201`:**
 ```json
 {
+  "success": true,
   "message": "Todo created successfully",
   "data": {
-    "id": "clxxxxxx",
-    "title": "Complete project",
-    "description": "Finish the API documentation",
+    "id": "550e8400-e29b-41d4-a716-446655440002",
+    "title": "Belajar Prisma ORM",
+    "description": "Pelajari relasi dan migrasi",
     "completed": false,
-    "userId": "clxxxxxx",
-    "user": {
-      "id": "clxxxxxx",
-      "name": "Admin User",
-      "email": "admin@example.com"
-    },
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-01T00:00:00.000Z"
+    "userId": "550e8400-e29b-41d4-a716-446655440000"
   }
 }
 ```
 
-### 4. Update Todo
+---
 
-Update todo berdasarkan ID.
-- USER: Hanya bisa update todo milik sendiri
-- ADMIN: Bisa update semua todo
+#### Update Todo
 
-**Endpoint:** `PUT /api/todos/:id`
-
-**Headers:**
 ```
-Authorization: Bearer <access_token>
+PUT /api/todos/:id
 ```
 
-**Request Body:**
+**Body (semua opsional):**
 ```json
 {
-  "title": "Complete project - Updated",
-  "description": "Finish all documentation",
+  "title": "Judul baru",
+  "description": "Deskripsi baru",
   "completed": true
 }
 ```
 
-**Response (200 OK):**
+---
+
+#### Hapus Todo
+
+```
+DELETE /api/todos/:id
+```
+
+**Response `200`:**
 ```json
 {
-  "message": "Todo updated successfully",
-  "data": {
-    "id": "clxxxxxx",
-    "title": "Complete project - Updated",
-    "description": "Finish all documentation",
-    "completed": true,
-    "userId": "clxxxxxx",
-    "user": {
-      "id": "clxxxxxx",
-      "name": "Admin User",
-      "email": "admin@example.com"
-    },
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-01T01:00:00.000Z"
-  }
-}
-```
-
-### 5. Delete Todo
-
-Menghapus todo berdasarkan ID.
-- USER: Hanya bisa delete todo milik sendiri
-- ADMIN: Bisa delete semua todo
-
-**Endpoint:** `DELETE /api/todos/:id`
-
-**Headers:**
-```
-Authorization: Bearer <access_token>
-```
-
-**Response (200 OK):**
-```json
-{
+  "success": true,
   "message": "Todo deleted successfully"
 }
 ```
 
 ---
 
-## 👥 User Management Endpoints (Admin Only)
+### 👥 Users — `/api/users`
 
-Semua endpoint user management memerlukan authentication dan role ADMIN.
+> Semua endpoint users memerlukan **ADMIN** role.
 
-### 1. Get All Users
+#### List Users
 
-Mendapatkan semua users dengan pagination dan filter.
-
-**Endpoint:** `GET /api/users?page=1&limit=10`
-
-**Headers:**
 ```
-Authorization: Bearer <admin_access_token>
+GET /api/users
+GET /api/users?page=1&limit=10
+GET /api/users?role=USER
+GET /api/users?status=ACTIVE
+GET /api/users?role=USER&status=ACTIVE&page=1&limit=5
 ```
 
-**Query Parameters:**
-- `page` (optional): Halaman yang ingin diambil (default: 1)
-- `limit` (optional): Jumlah data per halaman (default: 10)
-- `role` (optional): Filter by role (USER, MODERATOR, ADMIN)
-- `status` (optional): Filter by status (ACTIVE, INACTIVE)
+**Query Params:**
 
-**Response (200 OK):**
+| Param | Nilai | Deskripsi |
+|---|---|---|
+| `page` | `1` | Nomor halaman |
+| `limit` | `10` | Jumlah per halaman |
+| `role` | `ADMIN` / `MODERATOR` / `USER` | Filter berdasarkan role |
+| `status` | `ACTIVE` / `INACTIVE` | Filter berdasarkan status |
+
+**Response `200`:**
 ```json
 {
+  "success": true,
   "data": [
     {
-      "id": "clxxxxxx",
-      "email": "user@example.com",
+      "id": "550e8400-e29b-41d4-a716-446655440000",
       "name": "John Doe",
-      "phone": "08123456789",
-      "birthDate": "1990-01-01T00:00:00.000Z",
+      "email": "john@example.com",
       "role": "USER",
       "status": "ACTIVE",
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z",
-      "_count": {
-        "todos": 5
-      }
+      "_count": { "todos": 3 },
+      "createdAt": "2026-02-20T00:00:00.000Z"
     }
   ],
   "meta": {
     "page": 1,
     "limit": 10,
-    "total": 50,
-    "totalPages": 5
+    "total": 1,
+    "totalPages": 1
   }
 }
 ```
 
-### 2. Get User by ID
+---
 
-Mendapatkan detail user berdasarkan ID beserta todos-nya.
+#### Detail User
 
-**Endpoint:** `GET /api/users/:id`
-
-**Headers:**
 ```
-Authorization: Bearer <admin_access_token>
+GET /api/users/:id
 ```
 
-**Response (200 OK):**
+**Response `200`:**
 ```json
 {
+  "success": true,
   "data": {
-    "id": "clxxxxxx",
-    "email": "user@example.com",
+    "id": "550e8400-e29b-41d4-a716-446655440000",
     "name": "John Doe",
-    "phone": "08123456789",
-    "birthDate": "1990-01-01T00:00:00.000Z",
+    "email": "john@example.com",
+    "phone": "081234567890",
     "role": "USER",
     "status": "ACTIVE",
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2024-01-01T00:00:00.000Z",
-    "todos": [
-      {
-        "id": "clxxxxxx",
-        "title": "Complete task",
-        "completed": false,
-        "createdAt": "2024-01-01T00:00:00.000Z"
-      }
-    ],
-    "_count": {
-      "todos": 5
-    }
+    "todos": [],
+    "_count": { "todos": 0 }
   }
 }
 ```
 
-### 3. Create User by Admin
+---
 
-Admin dapat membuat user baru dengan role apapun.
+#### Buat User *(Admin)*
 
-**Endpoint:** `POST /api/users`
-
-**Headers:**
 ```
-Authorization: Bearer <admin_access_token>
+POST /api/users
 ```
 
-**Request Body:**
+**Body:**
 ```json
 {
-  "email": "newuser@example.com",
+  "name": "Jane Doe",
+  "email": "jane@example.com",
   "password": "password123",
-  "name": "New User",
-  "phone": "08111222333",
-  "birthDate": "1995-05-15",
-  "role": "USER",
-  "status": "ACTIVE"
+  "role": "MODERATOR",
+  "phone": "081234567890",
+  "birthDate": "1998-03-20"
 }
 ```
 
-**Response (201 Created):**
+---
+
+#### Update Role User *(Admin)*
+
+```
+PATCH /api/users/:id/role
+```
+
+**Body:**
 ```json
 {
-  "message": "User created successfully",
-  "data": {
-    "id": "clxxxxxx",
-    "email": "newuser@example.com",
-    "name": "New User",
-    "phone": "08111222333",
-    "birthDate": "1995-05-15T00:00:00.000Z",
-    "role": "USER",
-    "status": "ACTIVE",
-    "createdAt": "2024-01-01T00:00:00.000Z"
-  }
+  "role": "MODERATOR"
 }
 ```
 
-### 4. Update User Role
+---
 
-Mengubah role user (USER/MODERATOR/ADMIN).
+#### Update Status User *(Admin)*
 
-**Endpoint:** `PATCH /api/users/:id/role`
-
-**Headers:**
 ```
-Authorization: Bearer <admin_access_token>
+PATCH /api/users/:id/status
 ```
 
-**Request Body:**
-```json
-{
-  "role": "ADMIN"
-}
-```
-
-**Response (200 OK):**
-```json
-{
-  "message": "User role updated successfully",
-  "data": {
-    "id": "clxxxxxx",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "role": "ADMIN",
-    "status": "ACTIVE",
-    "updatedAt": "2024-01-01T00:00:00.000Z"
-  }
-}
-```
-
-### 5. Update User Status
-
-Mengubah status user (ACTIVE/INACTIVE).
-
-**Endpoint:** `PATCH /api/users/:id/status`
-
-**Headers:**
-```
-Authorization: Bearer <admin_access_token>
-```
-
-**Request Body:**
+**Body:**
 ```json
 {
   "status": "INACTIVE"
 }
 ```
 
-**Response (200 OK):**
+---
+
+#### Hapus User *(Admin)*
+
+```
+DELETE /api/users/:id
+```
+
+> Admin tidak bisa menghapus akunnya sendiri.
+
+**Response `200`:**
 ```json
 {
-  "message": "User status updated successfully",
-  "data": {
-    "id": "clxxxxxx",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "role": "USER",
-    "status": "INACTIVE",
-    "updatedAt": "2024-01-01T00:00:00.000Z"
-  }
-}
-```
-
-### 6. Delete User
-
-Menghapus user berdasarkan ID. Admin tidak bisa menghapus akun sendiri.
-
-**Endpoint:** `DELETE /api/users/:id`
-
-**Headers:**
-```
-Authorization: Bearer <admin_access_token>
-```
-
-**Response (200 OK):**
-```json
-{
+  "success": true,
   "message": "User deleted successfully"
 }
 ```
 
-**Error Response (400 Bad Request):**
+---
+
+## ❌ Format Error Response
+
+Semua error menggunakan format yang konsisten:
+
 ```json
 {
-  "error": "Cannot delete your own account"
+  "success": false,
+  "message": "Pesan error",
+  "errors": []
+}
+```
+
+**HTTP Status codes:**
+
+| Code | Keterangan |
+|---|---|
+| `400` | Bad Request — input tidak valid |
+| `401` | Unauthorized — token tidak ada / expired |
+| `403` | Forbidden — tidak punya izin |
+| `404` | Not Found — data tidak ditemukan |
+| `409` | Conflict — data sudah ada (misal: email duplikat) |
+| `422` | Unprocessable Entity — validasi Zod gagal |
+| `500` | Internal Server Error |
+
+**Contoh error validasi `422`:**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    { "field": "email", "message": "Invalid email address" },
+    { "field": "password", "message": "Password must be at least 6 characters" }
+  ]
 }
 ```
 
 ---
 
-## 🔒 Authorization
-
-API ini menggunakan **Bearer Token Authentication**. Setiap request yang memerlukan autentikasi harus menyertakan header:
-
-```
-Authorization: Bearer <access_token>
-```
-
-### Role-Based Access Control
-
-- **USER**: Dapat mengakses dan mengupdate profil sendiri, CRUD todos milik sendiri
-- **MODERATOR**: (Reserved untuk future features)
-- **ADMIN**: Dapat mengakses semua endpoint termasuk:
-  - CRUD semua todos dari semua user
-  - User management (create, read, update role/status, delete users)
-
----
-
-## ⚠️ Error Codes
-
-| Status Code | Deskripsi |
-|-------------|-----------|
-| 200 | OK - Request berhasil |
-| 201 | Created - Resource berhasil dibuat |
-| 400 | Bad Request - Validation error |
-| 401 | Unauthorized - Authentication required |
-| 403 | Forbidden - Insufficient permissions |
-| 404 | Not Found - Resource tidak ditemukan |
-| 500 | Internal Server Error - Server error |
-
----
-
-## 🗄️ Database Schema
-
-### User Model
-
-```prisma
-model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  password     String
-  name         String
-  phone        String?
-  birthDate    DateTime?
-  role         Role       @default(USER) // ADMIN, MODERATOR, USER
-  status       UserStatus @default(ACTIVE) // ACTIVE, INACTIVE
-  refreshToken String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  todos        Todo[]
-}
-```
-
-### Todo Model
-
-```prisma
-model Todo {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  completed   Boolean  @default(false)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-```
-
----
-
-## 🧪 Testing dengan cURL
-
-### Register User
+## 🛠️ Scripts
 
 ```bash
-curl -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "password123",
-    "passwordConfirmation": "password123",
-    "name": "John Doe"
-  }'
-```
-
-### Login
-
-```bash
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "password123"
-  }'
-```
-
-### Get Profile
-
-```bash
-curl -X GET http://localhost:3000/api/auth/profile \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-### Create Todo (Admin Only)
-
-```bash
-curl -X POST http://localhost:3000/api/todos \
-  -H "Authorization: Bearer YOUR_ADMIN_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Complete project",
-    "description": "Finish documentation"
-  }'
+bun run dev          # Development server dengan auto-reload
+bun run start        # Production server
+bun run db:generate  # Generate Prisma client
+bun run db:push      # Push schema ke database (tanpa migrasi)
+bun run db:migrate   # Buat dan jalankan migrasi
+bun run db:studio    # Buka Prisma Studio (GUI database)
 ```
 
 ---
 
-## 📁 Project Structure
+## 📖 Referensi
 
-```
-honojs-api/
-├── prisma/
-│   └── schema.prisma          # Database schema
-├── src/
-│   ├── config/
-│   │   └── index.ts           # App configuration
-│   ├── lib/
-│   │   └── prisma.ts          # Prisma client instance
-│   ├── middleware/
-│   │   ├── auth.ts            # Authentication middleware
-│   │   └── role.ts            # Role-based authorization
-│   ├── routes/
-│   │   ├── auth.ts            # Authentication routes
-│   │   ├── todos.ts           # Todos routes
-│   │   └── users.ts           # User management routes
-│   ├── utils/
-│   │   ├── jwt.ts             # JWT utilities
-│   │   └── password.ts        # Password hashing
-│   ├── validators/
-│   │   ├── auth.ts            # Auth validation schemas
-│   │   ├── todo.ts            # Todo validation schemas
-│   │   └── user.ts            # User validation schemas
-│   └── index.ts               # Main application
-├── .env                       # Environment variables
-├── .env.example               # Environment template
-├── .gitignore
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
----
-
-## 🚀 Deployment
-
-### Production Build
-
-```bash
-bun run start
-```
-
-### Environment Variables untuk Production
-
-Pastikan untuk mengubah nilai berikut di production:
-
-- `JWT_SECRET`: Gunakan secret key yang kuat
-- `JWT_REFRESH_SECRET`: Gunakan secret key yang kuat dan berbeda
-- `DATABASE_URL`: URL database production
-
----
-
-## 🛠️ Prisma Commands
-
-```bash
-# Generate Prisma Client
-bun run db:generate
-
-# Push schema ke database (development)
-bun run db:push
-
-# Create migration
-bun run db:migrate
-
-# Open Prisma Studio (Database GUI)
-bun run db:studio
-```
-
----
-
-## 📝 Catatan Penting
-
-1. **JWT Tokens**:
-   - Access token berlaku selama 15 menit
-   - Refresh token berlaku selama 7 hari
-   - Gunakan refresh token untuk mendapatkan access token baru
-
-2. **Password Requirements**:
-   - Minimal 6 karakter
-   - Password harus sama dengan passwordConfirmation
-
-3. **Admin User**:
-   - **Cara 1 (Recommended)**: Gunakan endpoint `/api/auth/setup-admin` untuk membuat admin pertama
-   - **Cara 2**: Register user biasa, lalu ubah role di database:
-     - Gunakan Prisma Studio: `bun run db:studio`
-     - Atau manual: `UPDATE users SET role='ADMIN' WHERE email='admin@example.com';`
-   - **Cara 3**: Setelah ada 1 admin, admin dapat membuat admin lain via endpoint `/api/users`
-
-4. **Security**:
-   - Jangan commit file `.env` ke repository
-   - Gunakan environment variables yang kuat di production
-   - Implementasikan rate limiting untuk production
-
----
-
-## 🤝 Contributing
-
-Contributions, issues, dan feature requests are welcome!
-
----
-
-## 📄 License
-
-This project is MIT licensed.
-
----
-
-## 👨‍💻 Author
-
-Built with ❤️ using Bun, Hono.js, and Prisma ORM
-
----
-
-## 📞 Support
-
-Jika ada pertanyaan atau masalah, silakan buat issue di repository ini.
-
----
-
-**Happy Coding! 🎉**
+- [Hono.js Docs](https://hono.dev)
+- [Prisma Docs](https://www.prisma.io/docs)
+- [Bun Docs](https://bun.sh/docs)
+- [Zod Docs](https://zod.dev)

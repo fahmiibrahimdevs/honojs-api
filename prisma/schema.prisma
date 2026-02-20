@@ -22,7 +22,7 @@ enum UserStatus {
 }
 
 model User {
-  id           String     @id @default(cuid())
+  id           String     @id @default(uuid())
   email        String     @unique
   password     String
   name         String
@@ -35,12 +35,13 @@ model User {
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
   todos Todo[]
+  posts Post[]
 
   @@map("users")
 }
 
 model Todo {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid())
   title       String
   description String?
   completed   Boolean  @default(false)
@@ -53,7 +54,7 @@ model Todo {
 }
 
 model Post {
-  id String @id @default(cuid())
+  id String @id @default(uuid())
   title String
   content String @db.Text
   published Boolean @default(false)
