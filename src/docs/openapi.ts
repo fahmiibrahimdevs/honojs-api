@@ -143,7 +143,6 @@ const paginationParams = [
 // ─── Path Definitions ──────────────────────────────────────────────────────────
 
 const paths: Record<string, PathItem> = {
-
   // ── Health Check ────────────────────────────────────────────────────────────
   "/": {
     get: {
@@ -175,11 +174,12 @@ const paths: Record<string, PathItem> = {
           "application/json": {
             schema: {
               type: "object",
-              required: ["name", "email", "password"],
+              required: ["name", "email", "password", "passwordConfirmation"],
               properties: {
                 name: { type: "string", example: "Super Admin" },
                 email: { type: "string", format: "email", example: "admin@example.com" },
                 password: { type: "string", minLength: 6, example: "password123" },
+                passwordConfirmation: { type: "string", example: "password123" },
                 phone: { type: "string", example: "081234567890" },
                 birthDate: { type: "string", example: "1990-01-01" },
               },
@@ -247,14 +247,17 @@ const paths: Record<string, PathItem> = {
         },
       },
       responses: {
-        "200": successResponse({
-          type: "object",
-          properties: {
-            accessToken: { type: "string", description: "JWT access token, berlaku 15 menit" },
-            refreshToken: { type: "string", description: "JWT refresh token, berlaku 7 hari" },
-            user: userSchema,
+        "200": successResponse(
+          {
+            type: "object",
+            properties: {
+              accessToken: { type: "string", description: "JWT access token, berlaku 15 menit" },
+              refreshToken: { type: "string", description: "JWT refresh token, berlaku 7 hari" },
+              user: userSchema,
+            },
           },
-        }, "Login berhasil"),
+          "Login berhasil",
+        ),
         "401": errorResponse("Email atau password salah"),
         "403": errorResponse("Akun tidak aktif"),
         "422": errorResponse("Validasi gagal"),
@@ -282,13 +285,16 @@ const paths: Record<string, PathItem> = {
         },
       },
       responses: {
-        "200": successResponse({
-          type: "object",
-          properties: {
-            accessToken: { type: "string" },
-            refreshToken: { type: "string" },
+        "200": successResponse(
+          {
+            type: "object",
+            properties: {
+              accessToken: { type: "string" },
+              refreshToken: { type: "string" },
+            },
           },
-        }, "Token berhasil diperbarui"),
+          "Token berhasil diperbarui",
+        ),
         "401": errorResponse("Refresh token tidak valid"),
       },
     },
@@ -379,10 +385,7 @@ const paths: Record<string, PathItem> = {
       summary: "List todos",
       description: "**ADMIN** melihat semua todo. **USER** hanya melihat todo miliknya.",
       security: bearerAuth,
-      parameters: [
-        ...paginationParams,
-        { name: "search", in: "query", schema: { type: "string" }, description: "Cari di title & description" },
-      ],
+      parameters: [...paginationParams, { name: "search", in: "query", schema: { type: "string" }, description: "Cari di title & description" }],
       responses: {
         "200": paginatedResponse(todoSchema),
         "401": errorResponse("Token tidak valid"),
@@ -477,11 +480,7 @@ const paths: Record<string, PathItem> = {
       summary: "List semua user",
       description: "Hanya **ADMIN** yang bisa akses.",
       security: bearerAuth,
-      parameters: [
-        ...paginationParams,
-        { name: "role", in: "query", schema: { type: "string", enum: ["ADMIN", "MODERATOR", "USER"] }, description: "Filter berdasarkan role" },
-        { name: "status", in: "query", schema: { type: "string", enum: ["ACTIVE", "INACTIVE"] }, description: "Filter berdasarkan status" },
-      ],
+      parameters: [...paginationParams, { name: "role", in: "query", schema: { type: "string", enum: ["ADMIN", "MODERATOR", "USER"] }, description: "Filter berdasarkan role" }, { name: "status", in: "query", schema: { type: "string", enum: ["ACTIVE", "INACTIVE"] }, description: "Filter berdasarkan status" }],
       responses: {
         "200": paginatedResponse(userSchema),
         "401": errorResponse("Token tidak valid"),
@@ -644,9 +643,7 @@ Bearer <accessToken>
     },
   },
 
-  servers: [
-    { url: "http://localhost:3000", description: "Development server" },
-  ],
+  servers: [{ url: "http://localhost:3000", description: "Development server" }],
 
   /** Definisi security scheme untuk Bearer token */
   components: {
