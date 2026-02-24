@@ -10,9 +10,9 @@ Menggunakan Clean Architecture dengan autentikasi JWT dual-token, multi-role aut
 | Kebutuhan | Teknologi |
 |---|---|
 | Runtime | Bun v1.3+ |
-| Framework | Hono.js v3 |
+| Framework | Hono.js v4 |
 | ORM | Prisma v5 + MySQL |
-| Validasi | Zod v3 |
+| Validasi | Zod v4 |
 | Auth | JWT dual-token (access + refresh) |
 | Password | Bun.password (bcrypt) |
 | ID | UUID v4 |
@@ -25,6 +25,7 @@ Menggunakan Clean Architecture dengan autentikasi JWT dual-token, multi-role aut
 src/
 ├── config/          → Konfigurasi dari env vars
 ├── controllers/     → HTTP handler (validasi + panggil service)
+├── docs/            → OpenAPI 3.0 spec (Swagger UI di /docs)
 ├── exceptions/      → Custom exception classes
 ├── lib/             → Prisma singleton
 ├── middleware/      → Auth & role middleware
@@ -129,12 +130,26 @@ http://localhost:3000
   "success": true,
   "data": {
     "name": "Hono.js REST API",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "status": "running",
     "timestamp": "2026-02-20T00:00:00.000Z"
   }
 }
 ```
+
+---
+
+### 📖 Dokumentasi API (Swagger UI)
+
+| Method | Endpoint | Auth | Deskripsi |
+|---|---|---|---|
+| GET | `/docs` | ❌ | Swagger UI interaktif |
+| GET | `/docs/json` | ❌ | Raw OpenAPI 3.0 JSON spec |
+
+**Cara pakai Swagger UI:**
+1. Buka `http://localhost:3000/docs`
+2. Klik **Authorize** → masukkan `Bearer <accessToken>` dari hasil login
+3. Pilih endpoint → **Try it out** → isi parameter → **Execute**
 
 ---
 
@@ -497,6 +512,8 @@ GET /api/users?role=USER&status=ACTIVE&page=1&limit=5
 | `role` | `ADMIN` / `MODERATOR` / `USER` | Filter berdasarkan role |
 | `status` | `ACTIVE` / `INACTIVE` | Filter berdasarkan status |
 
+> Filter `role` dan `status` bisa dikombinasikan. Tidak ada filter `search` untuk endpoint ini.
+
 **Response `200`:**
 ```json
 {
@@ -561,10 +578,13 @@ POST /api/users
   "email": "jane@example.com",
   "password": "password123",
   "role": "MODERATOR",
+  "status": "ACTIVE",
   "phone": "081234567890",
   "birthDate": "1998-03-20"
 }
 ```
+
+> Field `role` default: `USER`. Field `status` default: `ACTIVE`. Field `phone` dan `birthDate` opsional.
 
 ---
 
