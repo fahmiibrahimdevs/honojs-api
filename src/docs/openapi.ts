@@ -134,6 +134,43 @@ const todoSchema: SchemaObject = {
   },
 };
 
+/** Schema data satu file yang terlampir di post */
+const postFileSchema: SchemaObject = {
+  type: "object",
+  properties: {
+    id: { type: "string", format: "uuid", example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" },
+    originalName: { type: "string", example: "laporan.pdf", description: "Nama file asli dari user" },
+    storedName: { type: "string", example: "a1b2c3d4-xxxx.pdf", description: "Nama file di disk (UUID)" },
+    path: { type: "string", example: "uploads/posts/xxx/a1b2c3d4.pdf", description: "Path file di server" },
+    mimeType: { type: "string", example: "application/pdf", description: "Tipe MIME file" },
+    size: { type: "integer", example: 204800, description: "Ukuran file dalam bytes" },
+    createdAt: { type: "string", format: "date-time" },
+  },
+};
+
+/** Schema data post beserta info author dan daftar file */
+const postSchema: SchemaObject = {
+  type: "object",
+  properties: {
+    id: { type: "string", format: "uuid", example: "550e8400-e29b-41d4-a716-446655440003" },
+    title: { type: "string", example: "Pengenalan Hono.js" },
+    content: { type: "string", example: "Hono.js adalah framework web ultra-cepat untuk edge runtime..." },
+    published: { type: "boolean", example: false },
+    authorId: { type: "string", format: "uuid" },
+    author: {
+      type: "object",
+      properties: {
+        id: { type: "string", format: "uuid" },
+        name: { type: "string", example: "John Doe" },
+        email: { type: "string", format: "email", example: "john@example.com" },
+      },
+    },
+    files: { type: "array", items: postFileSchema, description: "Daftar file yang terlampir" },
+    createdAt: { type: "string", format: "date-time" },
+    updatedAt: { type: "string", format: "date-time" },
+  },
+};
+
 /** Query params paginasi yang dipakai di semua endpoint list */
 const paginationParams = [
   { name: "page", in: "query", schema: { type: "integer", default: 1 }, description: "Nomor halaman" },
@@ -473,6 +510,173 @@ const paths: Record<string, PathItem> = {
     },
   },
 
+  // ── Posts ───────────────────────────────────────────────────────────────────
+  "/api/posts": {
+    get: {
+      tags: ["Posts"],
+      summary: "List post",
+      description: "**ADMIN** melihat semua post. **USER** hanya melihat post miliknya.",
+      security: bearerAuth,
+      parameters: [
+        ...paginationParams,
+        { name: "search", in: "query", schema: { type: "string" }, description: "Cari di title & content" },
+      ],
+      responses: {
+        "200": paginatedResponse(postSchema),
+        "401": errorResponse("Token tidak valid"),
+      },
+    },
+    post: {
+      tags: ["Posts"],
+      summary: "Buat post baru",
+      description: "Buat post baru tanpa file. Untuk upload file, gunakan `POST /api/posts/:id/files` setelah post dibuat.",
+      security: bearerAuth,
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["title", "content"],
+              properties: {
+                title: { type: "string", minLength: 3, example: "Pengenalan Hono.js" },
+                content: { type: "string", minLength: 10, example: "Hono.js adalah framework web ultra-cepat..." },
+                published: { type: "boolean", default: false, description: "Publish langsung atau simpan sebagai draft" },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "201": successResponse(postSchema, "Post berhasil dibuat"),
+        "401": errorResponse("Token tidak valid"),
+        "422": errorResponse("Validasi gagal"),
+      },
+    },
+  },
+
+  "/api/posts/{id}": {
+    get: {
+      tags: ["Posts"],
+      summary: "Detail post",
+      description: "Mengembalikan data post lengkap beserta info author dan daftar file yang terlampir.",
+      security: bearerAuth,
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+      responses: {
+        "200": successResponse(postSchema),
+        "401": errorResponse("Token tidak valid"),
+        "403": errorResponse("Bukan post milik kamu"),
+        "404": errorResponse("Post tidak ditemukan"),
+      },
+    },
+    put: {
+      tags: ["Posts"],
+      summary: "Update post",
+      security: bearerAuth,
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                title: { type: "string", minLength: 3, example: "Judul baru" },
+                content: { type: "string", minLength: 10, example: "Konten baru yang lebih panjang..." },
+                published: { type: "boolean", example: true, description: "true = publish, false = unpublish" },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": successResponse(postSchema, "Post berhasil diupdate"),
+        "401": errorResponse("Token tidak valid"),
+        "403": errorResponse("Bukan post milik kamu"),
+        "404": errorResponse("Post tidak ditemukan"),
+        "422": errorResponse("Validasi gagal"),
+      },
+    },
+    delete: {
+      tags: ["Posts"],
+      summary: "Hapus post",
+      description: "Menghapus post beserta **semua file** yang terlampir dari disk dan database.",
+      security: bearerAuth,
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+      responses: {
+        "200": successResponse({}, "Post berhasil dihapus"),
+        "401": errorResponse("Token tidak valid"),
+        "403": errorResponse("Bukan post milik kamu"),
+        "404": errorResponse("Post tidak ditemukan"),
+      },
+    },
+  },
+
+  "/api/posts/{id}/files": {
+    post: {
+      tags: ["Posts"],
+      summary: "Upload multiple file ke post",
+      description: [
+        "Upload satu atau lebih file ke post yang sudah ada.",
+        "",
+        "**Batasan:**",
+        "- Maksimum **10 file** per request",
+        "- Ukuran maksimum per file: **5MB**",
+        "- Tipe yang didukung: **JPEG, PNG, GIF, WebP, PDF, DOC, DOCX, TXT**",
+        "",
+        "**Cara kirim:** gunakan `Content-Type: multipart/form-data` dengan field name **`files`**.",
+      ].join("\n"),
+      security: bearerAuth,
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" }, description: "ID post tujuan" }],
+      requestBody: {
+        required: true,
+        content: {
+          "multipart/form-data": {
+            schema: {
+              type: "object",
+              required: ["files"],
+              properties: {
+                files: {
+                  type: "array",
+                  items: { type: "string", format: "binary" },
+                  description: "File yang akan diupload (bisa lebih dari satu)",
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "201": successResponse(
+          { type: "array", items: postFileSchema },
+          "File berhasil diupload",
+        ),
+        "400": errorResponse("Tidak ada file / tipe tidak didukung / ukuran melebihi batas"),
+        "401": errorResponse("Token tidak valid"),
+        "403": errorResponse("Bukan post milik kamu"),
+        "404": errorResponse("Post tidak ditemukan"),
+      },
+    },
+  },
+
+  "/api/posts/{id}/files/{fileId}": {
+    delete: {
+      tags: ["Posts"],
+      summary: "Hapus satu file dari post",
+      description: "Menghapus file dari disk dan menghapus record-nya dari database.",
+      security: bearerAuth,
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" }, description: "ID post" },
+        { name: "fileId", in: "path", required: true, schema: { type: "string", format: "uuid" }, description: "ID file yang akan dihapus" },
+      ],
+      responses: {
+        "200": successResponse({}, "File berhasil dihapus"),
+        "401": errorResponse("Token tidak valid"),
+        "403": errorResponse("Bukan file dari post milik kamu"),
+        "404": errorResponse("File tidak ditemukan"),
+      },
+    },
+  },
+
   // ── Users (Admin only) ───────────────────────────────────────────────────────
   "/api/users": {
     get: {
@@ -662,6 +866,7 @@ Bearer <accessToken>
     { name: "Health", description: "Status server" },
     { name: "Auth", description: "Autentikasi dan manajemen profil" },
     { name: "Todos", description: "CRUD todos (semua user, akses sesuai role)" },
+    { name: "Posts", description: "CRUD post dengan upload multiple file (semua user, akses sesuai role)" },
     { name: "Users (Admin)", description: "Manajemen user — hanya ADMIN" },
   ],
 

@@ -1,21 +1,21 @@
 # 🚀 Hono.js REST API
 
-REST API lengkap dibangun dengan **Bun**, **Hono.js v3**, dan **Prisma ORM**.
-Menggunakan Clean Architecture dengan autentikasi JWT dual-token, multi-role authorization, dan CRUD todos.
+REST API lengkap dibangun dengan **Bun**, **Hono.js v4**, dan **Prisma ORM**.
+Menggunakan Clean Architecture dengan autentikasi JWT dual-token, multi-role authorization, CRUD todos, dan **post dengan upload multiple file**.
 
 ---
 
 ## 🧱 Tech Stack
 
-| Kebutuhan | Teknologi |
-|---|---|
-| Runtime | Bun v1.3+ |
-| Framework | Hono.js v4 |
-| ORM | Prisma v5 + MySQL |
-| Validasi | Zod v4 |
-| Auth | JWT dual-token (access + refresh) |
-| Password | Bun.password (bcrypt) |
-| ID | UUID v4 |
+| Kebutuhan | Teknologi                         |
+| --------- | --------------------------------- |
+| Runtime   | Bun v1.3+                         |
+| Framework | Hono.js v4                        |
+| ORM       | Prisma v5 + MySQL                 |
+| Validasi  | Zod v4                            |
+| Auth      | JWT dual-token (access + refresh) |
+| Password  | Bun.password (bcrypt)             |
+| ID        | UUID v4                           |
 
 ---
 
@@ -63,6 +63,7 @@ DATABASE_URL="mysql://user:password@localhost:3306/honojs_api"
 JWT_SECRET="your-super-secret-jwt-key"
 JWT_REFRESH_SECRET="your-super-secret-refresh-key"
 PORT=3000
+UPLOAD_DIR="uploads"
 ```
 
 ### 3. Migrasi Database
@@ -89,12 +90,13 @@ Server berjalan di `http://localhost:3000`
 
 API menggunakan **JWT dual-token**:
 
-| Token | Expire | Kegunaan |
-|---|---|---|
-| `accessToken` | 15 menit | Dipakai di setiap request di header `Authorization` |
-| `refreshToken` | 7 hari | Hanya untuk memperbarui access token yang expired |
+| Token          | Expire   | Kegunaan                                            |
+| -------------- | -------- | --------------------------------------------------- |
+| `accessToken`  | 15 menit | Dipakai di setiap request di header `Authorization` |
+| `refreshToken` | 7 hari   | Hanya untuk memperbarui access token yang expired   |
 
 **Format header:**
+
 ```
 Authorization: Bearer <accessToken>
 ```
@@ -103,28 +105,30 @@ Authorization: Bearer <accessToken>
 
 ## 👤 Role & Akses
 
-| Role | Keterangan |
-|---|---|
-| `ADMIN` | Akses penuh ke semua endpoint |
-| `MODERATOR` | Akses terbatas (bisa dikembangkan) |
-| `USER` | Akses ke profil sendiri dan todo sendiri |
+| Role        | Keterangan                               |
+| ----------- | ---------------------------------------- |
+| `ADMIN`     | Akses penuh ke semua endpoint            |
+| `MODERATOR` | Akses terbatas (bisa dikembangkan)       |
+| `USER`      | Akses ke profil sendiri dan todo sendiri |
 
 ---
 
 ## 📡 API Endpoints
 
 ### Base URL
+
 ```
 http://localhost:3000
 ```
 
 ### Health Check
 
-| Method | Endpoint | Auth | Deskripsi |
-|---|---|---|---|
-| GET | `/` | ❌ | Status server |
+| Method | Endpoint | Auth | Deskripsi     |
+| ------ | -------- | ---- | ------------- |
+| GET    | `/`      | ❌   | Status server |
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -141,12 +145,13 @@ http://localhost:3000
 
 ### 📖 Dokumentasi API (Swagger UI)
 
-| Method | Endpoint | Auth | Deskripsi |
-|---|---|---|---|
-| GET | `/docs` | ❌ | Swagger UI interaktif |
-| GET | `/docs/json` | ❌ | Raw OpenAPI 3.0 JSON spec |
+| Method | Endpoint     | Auth | Deskripsi                 |
+| ------ | ------------ | ---- | ------------------------- |
+| GET    | `/docs`      | ❌   | Swagger UI interaktif     |
+| GET    | `/docs/json` | ❌   | Raw OpenAPI 3.0 JSON spec |
 
 **Cara pakai Swagger UI:**
+
 1. Buka `http://localhost:3000/docs`
 2. Klik **Authorize** → masukkan `Bearer <accessToken>` dari hasil login
 3. Pilih endpoint → **Try it out** → isi parameter → **Execute**
@@ -156,6 +161,7 @@ http://localhost:3000
 ### 🔑 Auth — `/api/auth`
 
 #### Setup Admin Pertama
+
 > Hanya bisa dijalankan sekali. Akan error jika admin sudah ada.
 
 ```
@@ -163,6 +169,7 @@ POST /api/auth/setup-admin
 ```
 
 **Body:**
+
 ```json
 {
   "name": "Super Admin",
@@ -182,6 +189,7 @@ POST /api/auth/register
 ```
 
 **Body:**
+
 ```json
 {
   "name": "John Doe",
@@ -193,6 +201,7 @@ POST /api/auth/register
 ```
 
 **Response `201`:**
+
 ```json
 {
   "success": true,
@@ -217,6 +226,7 @@ POST /api/auth/login
 ```
 
 **Body:**
+
 ```json
 {
   "email": "john@example.com",
@@ -225,6 +235,7 @@ POST /api/auth/login
 ```
 
 **Response `200`:**
+
 ```json
 {
   "success": true,
@@ -251,6 +262,7 @@ POST /api/auth/refresh-token
 ```
 
 **Body:**
+
 ```json
 {
   "refreshToken": "eyJhbGci..."
@@ -258,6 +270,7 @@ POST /api/auth/refresh-token
 ```
 
 **Response `200`:**
+
 ```json
 {
   "success": true,
@@ -270,13 +283,14 @@ POST /api/auth/refresh-token
 
 ---
 
-#### Lihat Profil *(Auth required)*
+#### Lihat Profil _(Auth required)_
 
 ```
 GET /api/auth/profile
 ```
 
 **Response `200`:**
+
 ```json
 {
   "success": true,
@@ -295,13 +309,14 @@ GET /api/auth/profile
 
 ---
 
-#### Update Profil *(Auth required)*
+#### Update Profil _(Auth required)_
 
 ```
 PUT /api/auth/profile
 ```
 
 **Body (semua opsional):**
+
 ```json
 {
   "name": "John Updated",
@@ -312,13 +327,14 @@ PUT /api/auth/profile
 
 ---
 
-#### Ganti Password *(Auth required)*
+#### Ganti Password _(Auth required)_
 
 ```
 POST /api/auth/change-password
 ```
 
 **Body:**
+
 ```json
 {
   "currentPassword": "password123",
@@ -328,13 +344,14 @@ POST /api/auth/change-password
 
 ---
 
-#### Logout *(Auth required)*
+#### Logout _(Auth required)_
 
 ```
 POST /api/auth/logout
 ```
 
 **Response `200`:**
+
 ```json
 {
   "success": true,
@@ -360,13 +377,14 @@ GET /api/todos?search=belajar&page=1&limit=5
 
 **Query Params:**
 
-| Param | Default | Deskripsi |
-|---|---|---|
-| `page` | `1` | Nomor halaman |
-| `limit` | `10` | Jumlah per halaman |
-| `search` | — | Cari di title & description |
+| Param    | Default | Deskripsi                   |
+| -------- | ------- | --------------------------- |
+| `page`   | `1`     | Nomor halaman               |
+| `limit`  | `10`    | Jumlah per halaman          |
+| `search` | —       | Cari di title & description |
 
 **Response `200`:**
+
 ```json
 {
   "success": true,
@@ -403,6 +421,7 @@ GET /api/todos/:id
 ```
 
 **Response `200`:**
+
 ```json
 {
   "success": true,
@@ -431,6 +450,7 @@ POST /api/todos
 ```
 
 **Body:**
+
 ```json
 {
   "title": "Belajar Prisma ORM",
@@ -440,6 +460,7 @@ POST /api/todos
 ```
 
 **Response `201`:**
+
 ```json
 {
   "success": true,
@@ -463,6 +484,7 @@ PUT /api/todos/:id
 ```
 
 **Body (semua opsional):**
+
 ```json
 {
   "title": "Judul baru",
@@ -480,12 +502,188 @@ DELETE /api/todos/:id
 ```
 
 **Response `200`:**
+
 ```json
 {
   "success": true,
   "message": "Todo deleted successfully"
 }
 ```
+
+---
+
+### 📰 Posts — `/api/posts`
+
+> Semua endpoint posts memerlukan autentikasi.
+> ADMIN melihat semua post. USER hanya melihat post miliknya.
+
+#### List Posts
+
+```
+GET /api/posts
+GET /api/posts?page=1&limit=10
+GET /api/posts?search=hono
+```
+
+**Query Params:**
+
+| Param    | Default | Deskripsi                    |
+| -------- | ------- | ---------------------------- |
+| `page`   | `1`     | Nomor halaman                |
+| `limit`  | `10`    | Jumlah per halaman           |
+| `search` | —       | Cari di title & content      |
+
+**Response `200`:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440003",
+      "title": "Pengenalan Hono.js",
+      "content": "Hono.js adalah framework web ultra-cepat...",
+      "published": false,
+      "author": { "id": "...", "name": "John Doe", "email": "john@example.com" },
+      "files": [],
+      "createdAt": "2026-02-24T00:00:00.000Z"
+    }
+  ],
+  "meta": { "page": 1, "limit": 10, "total": 1, "totalPages": 1 }
+}
+```
+
+---
+
+#### Detail Post
+
+```
+GET /api/posts/:id
+```
+
+---
+
+#### Buat Post
+
+```
+POST /api/posts
+```
+
+**Body:**
+```json
+{
+  "title": "Pengenalan Hono.js",
+  "content": "Hono.js adalah framework web ultra-cepat untuk edge runtime...",
+  "published": false
+}
+```
+
+**Response `201`:**
+```json
+{
+  "success": true,
+  "message": "Post created successfully",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440003",
+    "title": "Pengenalan Hono.js",
+    "content": "Hono.js adalah framework web ultra-cepat...",
+    "published": false,
+    "author": { "id": "...", "name": "John Doe", "email": "john@example.com" },
+    "files": []
+  }
+}
+```
+
+---
+
+#### Update Post
+
+```
+PUT /api/posts/:id
+```
+
+**Body (semua opsional):**
+```json
+{
+  "title": "Judul baru",
+  "content": "Konten baru...",
+  "published": true
+}
+```
+
+---
+
+#### Hapus Post
+
+```
+DELETE /api/posts/:id
+```
+
+> Menghapus post beserta **semua file** yang terlampir dari disk dan database.
+
+---
+
+#### Upload Multiple File ke Post
+
+```
+POST /api/posts/:id/files
+```
+
+> Request harus menggunakan `Content-Type: multipart/form-data`.
+> Field name: **`files`** (bisa kirim beberapa file sekaligus).
+
+**Batasan:**
+
+| Batasan          | Nilai                                       |
+| ---------------- | ------------------------------------------- |
+| Jumlah file      | Maksimum **10 file** per request            |
+| Ukuran per file  | Maksimum **5MB**                            |
+| Tipe yang boleh  | JPEG, PNG, GIF, WebP, PDF, DOC, DOCX, TXT  |
+
+**Contoh dengan `curl`:**
+```bash
+curl -X POST http://localhost:3000/api/posts/:id/files \
+  -H "Authorization: Bearer <token>" \
+  -F "files=@/path/to/gambar.jpg" \
+  -F "files=@/path/to/laporan.pdf"
+```
+
+**Response `201`:**
+```json
+{
+  "success": true,
+  "message": "2 file(s) uploaded successfully",
+  "data": [
+    {
+      "id": "a1b2c3d4-...",
+      "originalName": "gambar.jpg",
+      "storedName": "a1b2c3d4-xxxx.jpg",
+      "path": "uploads/posts/<postId>/a1b2c3d4-xxxx.jpg",
+      "mimeType": "image/jpeg",
+      "size": 204800,
+      "createdAt": "2026-02-24T00:00:00.000Z"
+    },
+    {
+      "id": "e5f6g7h8-...",
+      "originalName": "laporan.pdf",
+      "storedName": "e5f6g7h8-xxxx.pdf",
+      "path": "uploads/posts/<postId>/e5f6g7h8-xxxx.pdf",
+      "mimeType": "application/pdf",
+      "size": 512000,
+      "createdAt": "2026-02-24T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+#### Hapus Satu File dari Post
+
+```
+DELETE /api/posts/:id/files/:fileId
+```
+
+> Menghapus file dari disk dan menghapus record-nya dari database.
 
 ---
 
@@ -505,16 +703,17 @@ GET /api/users?role=USER&status=ACTIVE&page=1&limit=5
 
 **Query Params:**
 
-| Param | Nilai | Deskripsi |
-|---|---|---|
-| `page` | `1` | Nomor halaman |
-| `limit` | `10` | Jumlah per halaman |
-| `role` | `ADMIN` / `MODERATOR` / `USER` | Filter berdasarkan role |
-| `status` | `ACTIVE` / `INACTIVE` | Filter berdasarkan status |
+| Param    | Nilai                          | Deskripsi                 |
+| -------- | ------------------------------ | ------------------------- |
+| `page`   | `1`                            | Nomor halaman             |
+| `limit`  | `10`                           | Jumlah per halaman        |
+| `role`   | `ADMIN` / `MODERATOR` / `USER` | Filter berdasarkan role   |
+| `status` | `ACTIVE` / `INACTIVE`          | Filter berdasarkan status |
 
 > Filter `role` dan `status` bisa dikombinasikan. Tidak ada filter `search` untuk endpoint ini.
 
 **Response `200`:**
+
 ```json
 {
   "success": true,
@@ -547,6 +746,7 @@ GET /api/users/:id
 ```
 
 **Response `200`:**
+
 ```json
 {
   "success": true,
@@ -565,13 +765,14 @@ GET /api/users/:id
 
 ---
 
-#### Buat User *(Admin)*
+#### Buat User _(Admin)_
 
 ```
 POST /api/users
 ```
 
 **Body:**
+
 ```json
 {
   "name": "Jane Doe",
@@ -588,13 +789,14 @@ POST /api/users
 
 ---
 
-#### Update Role User *(Admin)*
+#### Update Role User _(Admin)_
 
 ```
 PATCH /api/users/:id/role
 ```
 
 **Body:**
+
 ```json
 {
   "role": "MODERATOR"
@@ -603,13 +805,14 @@ PATCH /api/users/:id/role
 
 ---
 
-#### Update Status User *(Admin)*
+#### Update Status User _(Admin)_
 
 ```
 PATCH /api/users/:id/status
 ```
 
 **Body:**
+
 ```json
 {
   "status": "INACTIVE"
@@ -618,7 +821,7 @@ PATCH /api/users/:id/status
 
 ---
 
-#### Hapus User *(Admin)*
+#### Hapus User _(Admin)_
 
 ```
 DELETE /api/users/:id
@@ -627,6 +830,7 @@ DELETE /api/users/:id
 > Admin tidak bisa menghapus akunnya sendiri.
 
 **Response `200`:**
+
 ```json
 {
   "success": true,
@@ -650,17 +854,18 @@ Semua error menggunakan format yang konsisten:
 
 **HTTP Status codes:**
 
-| Code | Keterangan |
-|---|---|
-| `400` | Bad Request — input tidak valid |
-| `401` | Unauthorized — token tidak ada / expired |
-| `403` | Forbidden — tidak punya izin |
-| `404` | Not Found — data tidak ditemukan |
+| Code  | Keterangan                                        |
+| ----- | ------------------------------------------------- |
+| `400` | Bad Request — input tidak valid                   |
+| `401` | Unauthorized — token tidak ada / expired          |
+| `403` | Forbidden — tidak punya izin                      |
+| `404` | Not Found — data tidak ditemukan                  |
 | `409` | Conflict — data sudah ada (misal: email duplikat) |
-| `422` | Unprocessable Entity — validasi Zod gagal |
-| `500` | Internal Server Error |
+| `422` | Unprocessable Entity — validasi Zod gagal         |
+| `500` | Internal Server Error                             |
 
 **Contoh error validasi `422`:**
+
 ```json
 {
   "success": false,

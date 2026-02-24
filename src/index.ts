@@ -27,6 +27,7 @@ import { swaggerUI } from "@hono/swagger-ui"; // Swagger UI middleware
 import authRoutes from "./routes/auth"; // Route /api/auth/...
 import todoRoutes from "./routes/todos"; // Route /api/todos/...
 import userRoutes from "./routes/users"; // Route /api/users/...
+import postRoutes from "./routes/posts"; // Route /api/posts/...
 import { openApiSpec } from "./docs/openapi"; // OpenAPI 3.0 spec
 
 const app = new Hono();
@@ -57,6 +58,7 @@ app.get("/", (c) => {
 app.route("/api/auth", authRoutes);
 app.route("/api/todos", todoRoutes);
 app.route("/api/users", userRoutes);
+app.route("/api/posts", postRoutes); // Route untuk post + upload file
 
 // ─── Swagger / OpenAPI Docs ────────────────────────────────────────────────────
 // Akses Swagger UI di: http://localhost:3000/docs

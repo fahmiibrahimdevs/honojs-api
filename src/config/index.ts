@@ -33,4 +33,11 @@ export const config = {
 
   /** Durasi berlaku refresh token (7 hari). Setelah ini user harus login ulang. */
   jwtRefreshExpiresIn: "7d",
+
+  /**
+   * Direktori penyimpanan file upload.
+   * Defaultnya 'uploads' (relatif dari root project).
+   * Di production, gunakan path absolut atau object storage (S3, dll).
+   */
+  uploadDir: process.env.UPLOAD_DIR || "uploads",
 };

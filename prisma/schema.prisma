@@ -54,14 +54,29 @@ model Todo {
 }
 
 model Post {
-  id String @id @default(uuid())
-  title String
-  content String @db.Text
-  published Boolean @default(false)
-  authorId String @map("author_id")
-  author User @relation(fields: [authorId], references: [id])
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id        String     @id @default(uuid())
+  title     String
+  content   String     @db.Text
+  published Boolean    @default(false)
+  authorId  String     @map("author_id")
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  files     PostFile[] // Relasi ke file-file yang diunggah
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
 
   @@map("posts")
+}
+
+model PostFile {
+  id           String   @id @default(uuid())
+  postId       String   @map("post_id")
+  post         Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  originalName String   @map("original_name") // Nama file asli dari user
+  storedName   String   @map("stored_name")   // Nama file di disk (UUID + ext)
+  path         String                          // Path relatif ke file di server
+  mimeType     String   @map("mime_type")      // Tipe MIME (image/png, application/pdf, dll)
+  size         Int                             // Ukuran file dalam bytes
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("post_files")
 }
