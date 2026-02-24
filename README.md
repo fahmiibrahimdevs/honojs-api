@@ -656,8 +656,8 @@ curl -X POST http://localhost:3000/api/posts/:id/files \
     {
       "id": "a1b2c3d4-...",
       "originalName": "gambar.jpg",
-      "storedName": "a1b2c3d4-xxxx.jpg",
-      "path": "uploads/posts/<postId>/a1b2c3d4-xxxx.jpg",
+      "storedName": "gambar-a3.jpg",
+      "path": "uploads/posts/<postId>/gambar-a3.jpg",
       "mimeType": "image/jpeg",
       "size": 204800,
       "createdAt": "2026-02-24T00:00:00.000Z"
@@ -665,8 +665,8 @@ curl -X POST http://localhost:3000/api/posts/:id/files \
     {
       "id": "e5f6g7h8-...",
       "originalName": "laporan.pdf",
-      "storedName": "e5f6g7h8-xxxx.pdf",
-      "path": "uploads/posts/<postId>/e5f6g7h8-xxxx.pdf",
+      "storedName": "laporan-f2.pdf",
+      "path": "uploads/posts/<postId>/laporan-f2.pdf",
       "mimeType": "application/pdf",
       "size": 512000,
       "createdAt": "2026-02-24T00:00:00.000Z"

@@ -47,14 +47,18 @@ const MAX_FILES = 10;
 // ─── Helper ────────────────────────────────────────────────────────────────────
 
 /**
- * Hasilkan nama file unik di disk menggunakan UUID + ekstensi asli.
- * Mencegah konflik nama jika dua user upload file dengan nama sama.
+ * Hasilkan nama file unik di disk dengan format: {NamaAsli-XX}.ext
+ * Dua karakter random di akhir mencegah konflik jika nama file sama.
+ * Nama asli dipertahankan apa adanya (spasi dan karakter lain dibiarkan).
  * @param originalName - Nama file asli dari user
- * @returns Nama file unik, contoh: "a3f9c1d2-xxxx.jpg"
+ * @returns Nama file unik, contoh: "laporan keuangan-a3.pdf"
  */
 const generateStoredName = (originalName: string): string => {
-  const ext = originalName.split(".").pop() || "bin"; // Ambil ekstensi file
-  return `${crypto.randomUUID()}.${ext}`; // UUID + ekstensi asli
+  const lastDot = originalName.lastIndexOf("."); // Cari posisi titik ekstensi terakhir
+  const nameWithoutExt = lastDot !== -1 ? originalName.slice(0, lastDot) : originalName; // Nama tanpa ekstensi
+  const ext = lastDot !== -1 ? originalName.slice(lastDot + 1) : "bin"; // Ekstensi asli, fallback "bin"
+  const random2 = crypto.randomUUID().replace(/-/g, "").slice(0, 2); // Ambil 2 karakter hex acak
+  return `${nameWithoutExt}-${random2}.${ext}`; // Format: {NamaAsli-XX}.ext
 };
 
 /**

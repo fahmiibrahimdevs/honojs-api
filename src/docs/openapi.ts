@@ -140,8 +140,8 @@ const postFileSchema: SchemaObject = {
   properties: {
     id: { type: "string", format: "uuid", example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" },
     originalName: { type: "string", example: "laporan.pdf", description: "Nama file asli dari user" },
-    storedName: { type: "string", example: "a1b2c3d4-xxxx.pdf", description: "Nama file di disk (UUID)" },
-    path: { type: "string", example: "uploads/posts/xxx/a1b2c3d4.pdf", description: "Path file di server" },
+    storedName: { type: "string", example: "laporan-a3.pdf", description: "Nama file di disk ({NamaAsli-XX}.ext)" },
+    path: { type: "string", example: "uploads/posts/xxx/laporan-a3.pdf", description: "Path file di server" },
     mimeType: { type: "string", example: "application/pdf", description: "Tipe MIME file" },
     size: { type: "integer", example: 204800, description: "Ukuran file dalam bytes" },
     createdAt: { type: "string", format: "date-time" },
