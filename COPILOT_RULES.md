@@ -327,10 +327,12 @@ gh release create v2.1.0 \
 ## 📖 12. Swagger UI & OpenAPI Spec
 
 API ini memiliki dokumentasi interaktif yang bisa diakses di:
+
 - **Swagger UI** : `http://localhost:3000/docs`
 - **Raw JSON spec** : `http://localhost:3000/docs/json`
 
 ### File spec
+
 Semua definisi OpenAPI ada di **`src/docs/openapi.ts`**.
 File ini **harus diupdate** setiap kali ada perubahan endpoint.
 
@@ -342,6 +344,7 @@ File ini **harus diupdate** setiap kali ada perubahan endpoint.
 4. **Endpoint baru butuh tag baru** → tambahkan di array `tags` di bagian bawah spec
 
 ### Struktur `openapi.ts`:
+
 ```
 openapi.ts
 ├── successResponse()     → helper untuk response 200/201
@@ -355,6 +358,7 @@ openapi.ts
 ```
 
 ### Cara test Swagger UI:
+
 1. Buka `http://localhost:3000/docs`
 2. Klik **Authorize** → masukkan `Bearer <accessToken>` dari hasil login
 3. Pilih endpoint → **Try it out** → isi parameter → **Execute**
