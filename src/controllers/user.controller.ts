@@ -55,7 +55,7 @@ export const UserController = {
   async store(c: Context) {
     const body = await c.req.json();
     const result = createUserByAdminSchema.safeParse(body); // Validasi termasuk role dan status
-    if (!result.success) throw new ValidationException(result.error.errors);
+    if (!result.success) throw new ValidationException(result.error.issues);
 
     const user = await UserService.create(result.data);
     return response.created(c, user, "User created successfully"); // HTTP 201
@@ -69,7 +69,7 @@ export const UserController = {
     const id = c.req.param("id");
     const body = await c.req.json();
     const result = updateUserRoleSchema.safeParse(body); // Validasi: role harus salah satu enum
-    if (!result.success) throw new ValidationException(result.error.errors);
+    if (!result.success) throw new ValidationException(result.error.issues);
 
     const user = await UserService.updateRole(id, result.data.role);
     return response.success(c, user, "User role updated successfully");
@@ -83,7 +83,7 @@ export const UserController = {
     const id = c.req.param("id");
     const body = await c.req.json();
     const result = updateUserStatusSchema.safeParse(body); // Validasi: status harus ACTIVE/INACTIVE
-    if (!result.success) throw new ValidationException(result.error.errors);
+    if (!result.success) throw new ValidationException(result.error.issues);
 
     const user = await UserService.updateStatus(id, result.data.status);
     return response.success(c, user, "User status updated successfully");

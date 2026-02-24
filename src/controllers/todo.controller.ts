@@ -58,7 +58,7 @@ export const TodoController = {
     const user = c.get("user");
     const body = await c.req.json();
     const result = createTodoSchema.safeParse(body); // Validasi: title wajib, description & completed opsional
-    if (!result.success) throw new ValidationException(result.error.errors);
+    if (!result.success) throw new ValidationException(result.error.issues);
 
     // Gabungkan data validasi dengan userId dari token
     const todo = await TodoService.create({ ...result.data, userId: user.userId });
@@ -75,7 +75,7 @@ export const TodoController = {
     const user = c.get("user");
     const body = await c.req.json();
     const result = updateTodoSchema.safeParse(body); // Validasi: semua field opsional
-    if (!result.success) throw new ValidationException(result.error.errors);
+    if (!result.success) throw new ValidationException(result.error.issues);
 
     const todo = await TodoService.update(id, user.userId, user.role, result.data);
     return response.success(c, todo, "Todo updated successfully");

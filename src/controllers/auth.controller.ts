@@ -30,7 +30,7 @@ export const AuthController = {
   async setupAdmin(c: Context) {
     const body = await c.req.json(); // Ambil body request
     const result = registerSchema.safeParse(body); // Validasi dengan Zod (tidak throw)
-    if (!result.success) throw new ValidationException(result.error.errors); // Lempar jika gagal
+    if (!result.success) throw new ValidationException(result.error.issues); // Lempar jika gagal
 
     const admin = await AuthService.setupAdmin(result.data); // Panggil service
     return response.created(c, admin, "First admin created successfully"); // HTTP 201
@@ -44,7 +44,7 @@ export const AuthController = {
   async register(c: Context) {
     const body = await c.req.json();
     const result = registerSchema.safeParse(body); // Validasi: email, password, name, dll
-    if (!result.success) throw new ValidationException(result.error.errors);
+    if (!result.success) throw new ValidationException(result.error.issues);
 
     const user = await AuthService.register(result.data);
     return response.created(c, user, "User registered successfully"); // HTTP 201
@@ -58,7 +58,7 @@ export const AuthController = {
   async login(c: Context) {
     const body = await c.req.json();
     const result = loginSchema.safeParse(body); // Validasi: email dan password
-    if (!result.success) throw new ValidationException(result.error.errors);
+    if (!result.success) throw new ValidationException(result.error.issues);
 
     const data = await AuthService.login(result.data.email, result.data.password);
     return response.success(c, data, "Login successful"); // HTTP 200 dengan token
@@ -72,7 +72,7 @@ export const AuthController = {
   async refreshToken(c: Context) {
     const body = await c.req.json();
     const result = refreshTokenSchema.safeParse(body); // Validasi: refreshToken ada dan tidak kosong
-    if (!result.success) throw new ValidationException(result.error.errors);
+    if (!result.success) throw new ValidationException(result.error.issues);
 
     const data = await AuthService.refreshToken(result.data.refreshToken);
     return response.success(c, data, "Token refreshed successfully");
@@ -109,7 +109,7 @@ export const AuthController = {
     const user = c.get("user");
     const body = await c.req.json();
     const result = updateProfileSchema.safeParse(body); // Validasi field profil
-    if (!result.success) throw new ValidationException(result.error.errors);
+    if (!result.success) throw new ValidationException(result.error.issues);
 
     const updated = await AuthService.updateProfile(user.userId, result.data);
     return response.success(c, updated, "Profile updated successfully");
@@ -124,7 +124,7 @@ export const AuthController = {
     const user = c.get("user");
     const body = await c.req.json();
     const result = changePasswordSchema.safeParse(body); // Validasi: currentPassword, newPassword, konfirmasi
-    if (!result.success) throw new ValidationException(result.error.errors);
+    if (!result.success) throw new ValidationException(result.error.issues);
 
     await AuthService.changePassword(user.userId, result.data.currentPassword, result.data.newPassword);
     return response.noContent(c, "Password changed successfully"); // HTTP 200 tanpa data
