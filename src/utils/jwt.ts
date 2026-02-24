@@ -71,7 +71,7 @@ export const generateRefreshToken = async (payload: JWTPayload): Promise<string>
  */
 export const verifyAccessToken = async (token: string) => {
   try {
-    return await verify(token, config.jwtSecret); // Akan throw jika invalid/expire
+    return await verify(token, config.jwtSecret, "HS256"); // Akan throw jika invalid/expire
   } catch (error) {
     return null; // Return null daripada throw, error ditangani di middleware
   }
@@ -83,7 +83,7 @@ export const verifyAccessToken = async (token: string) => {
  */
 export const verifyRefreshToken = async (token: string) => {
   try {
-    return await verify(token, config.jwtRefreshSecret);
+    return await verify(token, config.jwtRefreshSecret, "HS256");
   } catch (error) {
     return null;
   }
