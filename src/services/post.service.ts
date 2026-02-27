@@ -17,11 +17,7 @@
 
 import { join } from "path"; // Helper path untuk membentuk path file
 import { PostRepository } from "../repositories/post.repository"; // Satu-satunya akses ke DB
-import {
-  NotFoundException,
-  ForbiddenException,
-  BadRequestException,
-} from "../exceptions"; // Exception class yang sudah tersedia
+import { NotFoundException, ForbiddenException, BadRequestException } from "../exceptions"; // Exception class yang sudah tersedia
 import type { CreatePostInput, UpdatePostInput } from "../validators/post"; // Tipe input dari Zod
 
 // ─── Konfigurasi Upload ────────────────────────────────────────────────────────
@@ -97,13 +93,7 @@ export const PostService = {
    * - USER  : hanya melihat post miliknya sendiri
    * @param search - Keyword pencarian di title/content (opsional)
    */
-  async getAll(
-    userId: string,
-    role: string,
-    page: number,
-    limit: number,
-    search?: string,
-  ) {
+  async getAll(userId: string, role: string, page: number, limit: number, search?: string) {
     const skip = (page - 1) * limit; // Hitung offset dari nomor halaman
 
     // Admin lihat semua post, user biasa hanya lihat post miliknya
@@ -165,8 +155,14 @@ export const PostService = {
 
   /**
    * Hapus post beserta semua file-nya dari disk dan database.
-   * File di disk dihapus satu per satu sebelum record DB dihapus.
-   * (Record DB akan terhapus cascade via Prisma onDelete: Cascade)
+   *
+   * Alur:
+   * 1. Pastikan post ada dan user punya akses
+   * 2. Hapus seluruh folder uploads/posts/<postId>/ beserta isinya sekaligus
+   *    menggunakan fs.rm({ recursive: true, force: true }) — lebih aman dan efisien
+   *    daripada hapus file satu-satu lalu rmdir (yang hanya bisa hapus folder kosong)
+   * 3. Hapus record post dari DB — record PostFile ikut terhapus otomatis
+   *    karena relasi Post → PostFile menggunakan onDelete: Cascade di schema Prisma
    */
   async delete(id: string, userId: string, role: string) {
     const post = await PostRepository.findById(id);
@@ -177,21 +173,13 @@ export const PostService = {
       throw new ForbiddenException("You can only delete your own posts"); // 403
     }
 
-    // Hapus semua file dari disk sebelum hapus record dari DB
-    for (const file of post.files) {
-      await deleteFileFromDisk(file.path); // Hapus tiap file dari storage
-    }
+    // Hapus seluruh folder post beserta semua file di dalamnya sekaligus
+    const uploadDir = process.env.UPLOAD_DIR || "uploads"; // Root folder upload dari env
+    const postDir = join(uploadDir, "posts", id); // Path folder milik post ini
+    const fs = await import("fs/promises");
+    await fs.rm(postDir, { recursive: true, force: true }); // force: true agar tidak error jika folder tidak ada
 
-    // Hapus folder post jika sudah kosong
-    const uploadDir = process.env.UPLOAD_DIR || "uploads";
-    const postDir = join(uploadDir, "posts", id);
-    try {
-      await import("fs/promises").then((fs) =>
-        fs.rmdir(postDir).catch(() => {}), // Abaikan jika folder tidak ada / tidak kosong
-      );
-    } catch {}
-
-    await PostRepository.delete(id); // Hapus post dari DB (files ikut terhapus via cascade)
+    await PostRepository.delete(id); // Hapus post dari DB (PostFile ikut terhapus via onDelete: Cascade)
   },
 
   /**
@@ -230,9 +218,7 @@ export const PostService = {
     // Validasi tipe MIME dan ukuran setiap file
     for (const file of files) {
       if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-        throw new BadRequestException(
-          `File "${file.name}" has unsupported type: ${file.type}. Allowed: images, PDF, DOC, DOCX, TXT`,
-        ); // 400
+        throw new BadRequestException(`File "${file.name}" has unsupported type: ${file.type}. Allowed: images, PDF, DOC, DOCX, TXT`); // 400
       }
       if (file.size > MAX_FILE_SIZE) {
         throw new BadRequestException(
@@ -244,8 +230,8 @@ export const PostService = {
     // Buat folder tujuan: uploads/posts/<postId>/
     const uploadDir = process.env.UPLOAD_DIR || "uploads";
     const postDir = join(uploadDir, "posts", postId);
-    await import("fs/promises").then((fs) =>
-      fs.mkdir(postDir, { recursive: true }), // Buat folder rekursif jika belum ada
+    await import("fs/promises").then(
+      (fs) => fs.mkdir(postDir, { recursive: true }), // Buat folder rekursif jika belum ada
     );
 
     // Proses dan simpan setiap file

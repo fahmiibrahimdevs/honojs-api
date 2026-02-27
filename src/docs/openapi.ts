@@ -517,10 +517,7 @@ const paths: Record<string, PathItem> = {
       summary: "List post",
       description: "**ADMIN** melihat semua post. **USER** hanya melihat post miliknya.",
       security: bearerAuth,
-      parameters: [
-        ...paginationParams,
-        { name: "search", in: "query", schema: { type: "string" }, description: "Cari di title & content" },
-      ],
+      parameters: [...paginationParams, { name: "search", in: "query", schema: { type: "string" }, description: "Cari di title & content" }],
       responses: {
         "200": paginatedResponse(postSchema),
         "401": errorResponse("Token tidak valid"),
@@ -599,7 +596,16 @@ const paths: Record<string, PathItem> = {
     delete: {
       tags: ["Posts"],
       summary: "Hapus post",
-      description: "Menghapus post beserta **semua file** yang terlampir dari disk dan database.",
+      description: [
+        "Menghapus post beserta **semua file** yang terlampir dari disk dan database.",
+        "",
+        "**Proses yang terjadi:**",
+        "1. Validasi post ada dan user punya akses",
+        "2. Seluruh folder `uploads/posts/{id}/` beserta isinya dihapus sekaligus dari disk",
+        "3. Record post dihapus dari database — record `PostFile` ikut terhapus otomatis via `onDelete: Cascade`",
+        "",
+        "Jika post tidak memiliki file, operasi tetap berhasil (folder tidak ada diabaikan).",
+      ].join("\n"),
       security: bearerAuth,
       parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
       responses: {
@@ -615,16 +621,7 @@ const paths: Record<string, PathItem> = {
     post: {
       tags: ["Posts"],
       summary: "Upload multiple file ke post",
-      description: [
-        "Upload satu atau lebih file ke post yang sudah ada.",
-        "",
-        "**Batasan:**",
-        "- Maksimum **10 file** per request",
-        "- Ukuran maksimum per file: **5MB**",
-        "- Tipe yang didukung: **JPEG, PNG, GIF, WebP, PDF, DOC, DOCX, TXT**",
-        "",
-        "**Cara kirim:** gunakan `Content-Type: multipart/form-data` dengan field name **`files`**.",
-      ].join("\n"),
+      description: ["Upload satu atau lebih file ke post yang sudah ada.", "", "**Batasan:**", "- Maksimum **10 file** per request", "- Ukuran maksimum per file: **5MB**", "- Tipe yang didukung: **JPEG, PNG, GIF, WebP, PDF, DOC, DOCX, TXT**", "", "**Cara kirim:** gunakan `Content-Type: multipart/form-data` dengan field name **`files`**."].join("\n"),
       security: bearerAuth,
       parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" }, description: "ID post tujuan" }],
       requestBody: {
@@ -646,10 +643,7 @@ const paths: Record<string, PathItem> = {
         },
       },
       responses: {
-        "201": successResponse(
-          { type: "array", items: postFileSchema },
-          "File berhasil diupload",
-        ),
+        "201": successResponse({ type: "array", items: postFileSchema }, "File berhasil diupload"),
         "400": errorResponse("Tidak ada file / tipe tidak didukung / ukuran melebihi batas"),
         "401": errorResponse("Token tidak valid"),
         "403": errorResponse("Bukan post milik kamu"),

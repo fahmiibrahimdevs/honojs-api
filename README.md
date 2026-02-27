@@ -527,13 +527,14 @@ GET /api/posts?search=hono
 
 **Query Params:**
 
-| Param    | Default | Deskripsi                    |
-| -------- | ------- | ---------------------------- |
-| `page`   | `1`     | Nomor halaman                |
-| `limit`  | `10`    | Jumlah per halaman           |
-| `search` | —       | Cari di title & content      |
+| Param    | Default | Deskripsi               |
+| -------- | ------- | ----------------------- |
+| `page`   | `1`     | Nomor halaman           |
+| `limit`  | `10`    | Jumlah per halaman      |
+| `search` | —       | Cari di title & content |
 
 **Response `200`:**
+
 ```json
 {
   "success": true,
@@ -569,6 +570,7 @@ POST /api/posts
 ```
 
 **Body:**
+
 ```json
 {
   "title": "Pengenalan Hono.js",
@@ -578,6 +580,7 @@ POST /api/posts
 ```
 
 **Response `201`:**
+
 ```json
 {
   "success": true,
@@ -602,6 +605,7 @@ PUT /api/posts/:id
 ```
 
 **Body (semua opsional):**
+
 ```json
 {
   "title": "Judul baru",
@@ -633,13 +637,14 @@ POST /api/posts/:id/files
 
 **Batasan:**
 
-| Batasan          | Nilai                                       |
-| ---------------- | ------------------------------------------- |
-| Jumlah file      | Maksimum **10 file** per request            |
-| Ukuran per file  | Maksimum **5MB**                            |
-| Tipe yang boleh  | JPEG, PNG, GIF, WebP, PDF, DOC, DOCX, TXT  |
+| Batasan         | Nilai                                     |
+| --------------- | ----------------------------------------- |
+| Jumlah file     | Maksimum **10 file** per request          |
+| Ukuran per file | Maksimum **5MB**                          |
+| Tipe yang boleh | JPEG, PNG, GIF, WebP, PDF, DOC, DOCX, TXT |
 
 **Contoh dengan `curl`:**
+
 ```bash
 curl -X POST http://localhost:3000/api/posts/:id/files \
   -H "Authorization: Bearer <token>" \
@@ -648,6 +653,7 @@ curl -X POST http://localhost:3000/api/posts/:id/files \
 ```
 
 **Response `201`:**
+
 ```json
 {
   "success": true,

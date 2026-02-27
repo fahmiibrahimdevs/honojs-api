@@ -81,12 +81,7 @@ export const PostRepository = {
    * @param search - Keyword untuk mencari di title atau content (opsional)
    * @returns [array of posts, total count]
    */
-  async findMany(
-    where: { authorId?: string; published?: boolean },
-    skip: number,
-    take: number,
-    search?: string,
-  ) {
+  async findMany(where: { authorId?: string; published?: boolean }, skip: number, take: number, search?: string) {
     // Bangun kondisi where lengkap dengan search (jika ada)
     const fullWhere = {
       ...where,
