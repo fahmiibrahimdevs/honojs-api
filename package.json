@@ -1,6 +1,6 @@
 {
   "name": "honojs-api",
-  "version": "1.0.1",
+  "version": "2.3.1",
   "description": "REST API with Bun, Hono.js, and Prisma ORM",
   "module": "src/index.ts",
   "type": "module",
