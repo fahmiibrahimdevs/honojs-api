@@ -3,3 +3,7 @@ node_modules
 dist
 *.log
 .DS_Store
+
+# Folder upload file — konten tidak masuk repo, hanya struktur folder yang dijaga via .gitkeep
+uploads/*
+!uploads/.gitkeep
